@@ -6,9 +6,10 @@ namespace LydicGroup\RapidApiCrudBundle\CommandHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use LydicGroup\RapidApiCrudBundle\Service\CrudService;
 use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
+use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 
 
-class CreateEntityCommandHandler
+class CreateEntityCommandHandler implements MessageHandlerInterface
 {
     private EntityManagerInterface $entityManager;
     private CrudService $crudService;

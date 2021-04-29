@@ -11,7 +11,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Annotation\Route;
 
 abstract class RapidApiCrudController extends AbstractController
@@ -22,12 +21,10 @@ abstract class RapidApiCrudController extends AbstractController
     protected bool $updateEnabled = true;
     protected bool $deleteEnabled = true;
 
-    private MessageBusInterface $messageBus;
     private CrudService $crudService;
 
-    public function __construct(MessageBusInterface $messageBus, CrudService $crudService)
+    public function __construct(CrudService $crudService)
     {
-        $this->messageBus = $messageBus;
         $this->crudService = $crudService;
     }
 
@@ -74,7 +71,7 @@ abstract class RapidApiCrudController extends AbstractController
 
         try {
             $command = new CreateEntityCommand($this->entityClassName(), $request->toArray());
-            $this->messageBus->dispatch($command);
+            $this->dispatchMessage($command);
 
             return new JsonResponse([
                 'message' => $this->crudService->createdMessage($this->entityClassName())
@@ -95,7 +92,7 @@ abstract class RapidApiCrudController extends AbstractController
 
         try {
             $command = new UpdateEntityCommand($this->entityClassName(), $id, $request->toArray());
-            $this->messageBus->dispatch($command);
+            $this->dispatchMessage($command);
 
             return new JsonResponse([
                 'message' => $this->crudService->updatedMessage($this->entityClassName())
@@ -116,7 +113,7 @@ abstract class RapidApiCrudController extends AbstractController
 
         try {
             $command = new DeleteEntityCommand($this->entityClassName(), $id);
-            $this->messageBus->dispatch($command);
+            $this->dispatchMessage($command);
 
             return new JsonResponse([
                 'message' => $this->crudService->deletedMessage($this->entityClassName())

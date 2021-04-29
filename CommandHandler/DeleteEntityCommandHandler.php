@@ -6,9 +6,10 @@ namespace LydicGroup\RapidApiCrudBundle\CommandHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use LydicGroup\RapidApiCrudBundle\Service\CrudService;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
+use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 
 
-class DeleteEntityCommandHandler
+class DeleteEntityCommandHandler implements MessageHandlerInterface
 {
     private EntityManagerInterface $entityManager;
     private CrudService $crudService;
