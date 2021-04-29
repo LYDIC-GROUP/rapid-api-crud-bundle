@@ -1,0 +1,33 @@
+{
+    "name": "lydic-group/rapid-api-crud",
+    "description": "This software enables rapid and flexible Symfony CRUD API development. Work in progress!",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Thijs Schalk",
+            "email": "thijs.schalk@gmail.com"
+        },
+        {
+            "name": "Willem Turkstra",
+            "email": "willem.turkstra@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "symfony/serializer": "^5.2",
+        "symfony/property-access": "^5.2",
+        "symfony/http-foundation": "^5.2",
+        "symfony/validator": "^5.2",
+        "doctrine/orm": "^2.8",
+        "symfony/framework-bundle": "^5.2",
+        "symfony/messenger": "^5.2",
+        "symfony/routing": "^5.2",
+        "symfony/string": "^5.2",
+        "symfony/http-kernel": "^5.2"
+    },
+    "autoload": {
+        "psr-4": { "LydicGroup\\RapidApiCrudBundle\\": "" },
+        "exclude-from-classmap": ["/Tests/"]
+    }
+}
