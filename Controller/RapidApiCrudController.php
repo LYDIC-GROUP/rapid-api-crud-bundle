@@ -52,6 +52,10 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function find(string $id): JsonResponse
     {
+        if (!$this->findEnabled) {
+            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
+        }
+
         try {
             $data = $this->crudService->find($this->entityClassName(), $id);
             return new JsonResponse($data, Response::HTTP_OK);
