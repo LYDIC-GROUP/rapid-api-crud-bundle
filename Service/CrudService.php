@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace LydicGroup\RapidApiCrudBundle\Service;
 
 use LydicGroup\RapidApiCrudBundle\Builder\CriteriaBuilder;
+use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -132,8 +133,9 @@ class CrudService
     /**
      * @throws \Symfony\Component\Serializer\Exception\ExceptionInterface
      */
-    public function list(string $className, Request $request): array
+    public function list(ControllerConfig $controllerConfig, Request $request): array
     {
+        $className = $controllerConfig->entityClassName;
         $criteria = $this->crudCriteriaBuilder->build($className, $request);
         $output = [];
 
@@ -148,9 +150,9 @@ class CrudService
      * @throws RapidApiCrudException
      * @throws \Symfony\Component\Serializer\Exception\ExceptionInterface
      */
-    public function find(string $className, $id): array
+    public function find(ControllerConfig $controllerConfig, $id): array
     {
-        $entity = $this->entityById($className, $id);
+        $entity = $this->entityById($controllerConfig->entityClassName, $id);
         return $this->normalize($entity, 'find');
     }
 
