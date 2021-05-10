@@ -8,7 +8,7 @@ use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Command\UpdateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
-use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
+use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectRepository;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
@@ -52,7 +52,7 @@ class CrudService
     }
 
     /**
-     * @throws RapidApiCrudException
+     * @throws NotFoundException
      */
     public function entityById(string $className, string $id): object
     {
@@ -60,14 +60,14 @@ class CrudService
         $entityIdFieldName = current($classMetadata->getIdentifier());
         $entity = $this->entityRepository($className)->findOneBy([$entityIdFieldName => $id]);
         if (is_null($entity)) {
-            throw new RapidApiCrudException(sprintf('The entity of type %s with ID %s doesn\'t exist', $className, $id));
+            throw new NotFoundException();
         }
 
         return $entity;
     }
 
     /**
-     * @throws RapidApiCrudException
+     * @throws ValidationException
      */
     public function validate(RapidApiCrudEntity $entity)
     {
@@ -80,6 +80,7 @@ class CrudService
         foreach ($errors as $error) {
             $errorMessages[] = $error->getMessage();
         }
+
         throw new ValidationException(implode(', ', $errorMessages));
     }
 
@@ -129,8 +130,8 @@ class CrudService
     }
 
     /**
-     * @throws RapidApiCrudException
      * @throws ExceptionInterface
+     * @throws NotFoundException
      */
     public function find(string $entityClassName, string $id): array
     {

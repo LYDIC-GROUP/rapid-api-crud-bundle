@@ -3,10 +3,8 @@ declare(strict_types=1);
 
 namespace LydicGroup\RapidApiCrudBundle\Service;
 
-use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
-use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
-use LydicGroup\RapidApiCrudBundle\Command\UpdateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
+use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -100,9 +98,15 @@ class CrudControllerService
     {
         if ($throwable instanceof HandlerFailedException) {
             //Handle the actual exception from command handler when it fails
-            if ($throwable->getPrevious() instanceof ValidationException) {
-                return new JsonResponse(['message' => $throwable->getPrevious()->getMessage()], Response::HTTP_BAD_REQUEST);
-            }
+            $throwable = $throwable->getPrevious();
+        }
+
+        if ($throwable instanceof NotFoundException) {
+            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
+        }
+
+        if ($throwable instanceof ValidationException) {
+            return new JsonResponse(['message' => $throwable->getPrevious()->getMessage()], Response::HTTP_BAD_REQUEST);
         }
 
         return new JsonResponse(null, Response::HTTP_BAD_REQUEST);
