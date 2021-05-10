@@ -4,18 +4,20 @@ declare(strict_types=1);
 namespace LydicGroup\RapidApiCrudBundle\Service;
 
 use LydicGroup\RapidApiCrudBundle\Builder\CriteriaBuilder;
-use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
+use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
+use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
+use LydicGroup\RapidApiCrudBundle\Command\UpdateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\Mapping\ClassMetadata;
 use Doctrine\Persistence\ObjectRepository;
+use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\String\Inflector\EnglishInflector;
-use Symfony\Component\String\Inflector\InflectorInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class CrudService
@@ -23,35 +25,30 @@ class CrudService
     private EntityManagerInterface $entityManager;
     private CriteriaBuilder $crudCriteriaBuilder;
     private ValidatorInterface $validator;
-    private InflectorInterface $inflector;
     private NormalizerInterface $objectNormalizer;
     private DenormalizerInterface $objectDenormalizer;
+    private MessageBusInterface $messageBus;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         CriteriaBuilder $crudCriteriaBuilder,
         ValidatorInterface $validator,
         NormalizerInterface $objectNormalizer,
-        DenormalizerInterface $objectDenormalizer
+        DenormalizerInterface $objectDenormalizer,
+        MessageBusInterface $messageBus
     )
     {
         $this->entityManager = $entityManager;
         $this->crudCriteriaBuilder = $crudCriteriaBuilder;
         $this->validator = $validator;
-        $this->inflector = new EnglishInflector();
         $this->objectNormalizer = $objectNormalizer;
         $this->objectDenormalizer = $objectDenormalizer;
+        $this->messageBus = $messageBus;
     }
 
-    private function entityRepository(string $className): ObjectRepository
+    public function entityRepository(string $className): ObjectRepository
     {
         return $this->entityManager->getRepository($className);
-    }
-
-    private function entityIdFieldName(string $className): string
-    {
-        $classMetadata = $this->classMetadata($className);
-        return current($classMetadata->getIdentifier());
     }
 
     /**
@@ -59,35 +56,14 @@ class CrudService
      */
     public function entityById(string $className, string $id): object
     {
-        $entityIdFieldName = $this->entityIdFieldName($className);
+        $classMetadata = $this->entityManager->getClassMetadata($className);
+        $entityIdFieldName = current($classMetadata->getIdentifier());
         $entity = $this->entityRepository($className)->findOneBy([$entityIdFieldName => $id]);
         if (is_null($entity)) {
-            throw new RapidApiCrudException($this->notFoundMessage($className));
+            throw new RapidApiCrudException(sprintf('The entity of type %s with ID %s doesn\'t exist', $className, $id));
         }
 
         return $entity;
-    }
-
-    /**
-     * @throws \ReflectionException
-     */
-    private function classNameWithoutNamespace(string $className): string
-    {
-        $reflect = new \ReflectionClass($className);
-        return $reflect->getShortName();
-    }
-
-    /**
-     * @throws \ReflectionException
-     */
-    public function entityNameSingular(string $className): string
-    {
-        return strtolower(current($this->inflector->singularize($this->classNameWithoutNamespace($className))));
-    }
-
-    private function classMetadata(string $className): ClassMetadata
-    {
-        return $this->entityManager->getClassMetadata($className);
     }
 
     /**
@@ -104,25 +80,23 @@ class CrudService
         foreach ($errors as $error) {
             $errorMessages[] = $error->getMessage();
         }
-        throw new RapidApiCrudException(implode(', ', $errorMessages));
+        throw new ValidationException(implode(', ', $errorMessages));
     }
 
     /**
-     * @throws \Symfony\Component\Serializer\Exception\ExceptionInterface
+     * @throws ExceptionInterface
      */
-    public function normalize(RapidApiCrudEntity $entity, string $group): array
+    public function entityToArray(RapidApiCrudEntity $entity, string $group = 'find'): array
     {
         return $this->objectNormalizer->normalize($entity, null, ['groups' => [$group]]);
     }
 
     /**
-     * @throws \Symfony\Component\Serializer\Exception\ExceptionInterface
+     * @throws ExceptionInterface
      */
-    public function denormalize(array $data, string $className, string $group, object $objectToPopulate = null): RapidApiCrudEntity
+    public function arrayToEntity(array $data, string $className, string $group, object $objectToPopulate = null): RapidApiCrudEntity
     {
-        $context = [
-            'groups' => [$group]
-        ];
+        $context = ['groups' => [$group]];
 
         if ($objectToPopulate) {
             $context[AbstractNormalizer::OBJECT_TO_POPULATE] = $objectToPopulate;
@@ -130,17 +104,25 @@ class CrudService
         return $this->objectDenormalizer->denormalize($data, $className, null, $context);
     }
 
-    /**
-     * @throws \Symfony\Component\Serializer\Exception\ExceptionInterface
-     */
-    public function list(ControllerConfig $controllerConfig, Request $request): array
+    public function criteria(string $entityClassName, Request $request): array
     {
-        $className = $controllerConfig->entityClassName;
-        $criteria = $this->crudCriteriaBuilder->build($className, $request);
+        return $this->crudCriteriaBuilder->build($entityClassName, $request);
+    }
+
+    /**
+     * @throws ExceptionInterface
+     */
+    public function list(string $entityClassName, array $criteria): array
+    {
+        $className = $entityClassName;
         $output = [];
 
         foreach ($this->entityRepository($className)->findBy($criteria) as $entity) {
-            $output[] = $this->normalize($entity, 'list');
+            if (!$entity instanceof RapidApiCrudEntity) {
+                continue;
+            }
+
+            $output[] = $this->entityToArray($entity, 'list');
         }
 
         return $output;
@@ -148,40 +130,33 @@ class CrudService
 
     /**
      * @throws RapidApiCrudException
-     * @throws \Symfony\Component\Serializer\Exception\ExceptionInterface
+     * @throws ExceptionInterface
      */
-    public function find(ControllerConfig $controllerConfig, $id): array
+    public function find(string $entityClassName, string $id): array
     {
-        $entity = $this->entityById($controllerConfig->entityClassName, $id);
-        return $this->normalize($entity, 'find');
+        $entity = $this->entityById($entityClassName, $id);
+        if (!$entity instanceof RapidApiCrudEntity) {
+            return [];
+        }
+
+        return $this->entityToArray($entity);
     }
 
-    public function notFoundMessage(string $className): string
+    public function create(string $entityClassName, array $data): void
     {
-        return sprintf("The %s doesn't exist.", $this->entityNameSingular($className));
+        $command = new CreateEntityCommand($entityClassName, $data);
+        $this->messageBus->dispatch($command);
     }
 
-    /**
-     * @throws \ReflectionException
-     */
-    public function createdMessage(string $className): string
+    public function update(string $entityClassName, string $id, array $data): void
     {
-        return sprintf("The %s has been created successfully.", $this->entityNameSingular($className));
+        $command = new UpdateEntityCommand($entityClassName, $id, $data);
+        $this->messageBus->dispatch($command);
     }
 
-    /**
-     * @throws \ReflectionException
-     */
-    public function updatedMessage(string $className): string
+    public function delete(string $entityClassName, string $id): void
     {
-        return sprintf("The %s has been updated successfully.", $this->entityNameSingular($className));
-    }
-
-    /**
-     * @throws \ReflectionException
-     */
-    public function deletedMessage(string $className): string
-    {
-        return sprintf("The %s has been deleted successfully.",$this->entityNameSingular($className));
+        $command = new DeleteEntityCommand($entityClassName, $id);
+        $this->messageBus->dispatch($command);
     }
 }

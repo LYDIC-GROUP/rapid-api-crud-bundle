@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace LydicGroup\RapidApiCrudBundle\CommandHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
 use LydicGroup\RapidApiCrudBundle\Service\CrudService;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
 use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
@@ -21,7 +22,7 @@ class DeleteEntityCommandHandler implements MessageHandlerInterface
     }
 
     /**
-     * @throws \LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException
+     * @throws RapidApiCrudException
      */
     public function __invoke(DeleteEntityCommand $command): void
     {

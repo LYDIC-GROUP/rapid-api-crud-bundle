@@ -3,24 +3,20 @@ declare(strict_types=1);
 
 namespace LydicGroup\RapidApiCrudBundle\Controller;
 
-use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
-use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
-use LydicGroup\RapidApiCrudBundle\Command\UpdateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
-use LydicGroup\RapidApiCrudBundle\Service\CrudService;
+use LydicGroup\RapidApiCrudBundle\Service\CrudControllerService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 abstract class RapidApiCrudController extends AbstractController
 {
-    private CrudService $crudService;
+    private CrudControllerService $crudControllerService;
 
-    public function __construct(CrudService $crudService)
+    public function __construct(CrudControllerService $crudControllerService)
     {
-        $this->crudService = $crudService;
+        $this->crudControllerService = $crudControllerService;
     }
 
     protected abstract function controllerConfig(): ControllerConfig;
@@ -30,16 +26,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function list(Request $request): JsonResponse
     {
-        if (!$this->controllerConfig()->listActionEnabled) {
-            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-        }
-
-        try {
-            $data = $this->crudService->list($this->controllerConfig(), $request);
-            return new JsonResponse($data, Response::HTTP_OK);
-        } catch (\Throwable $throwable) {
-            return new JsonResponse(null, Response::HTTP_BAD_REQUEST);
-        }
+        return $this->crudControllerService->list($this->controllerConfig(), $request);
     }
 
     /**
@@ -47,16 +34,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function find(string $id): JsonResponse
     {
-        if (!$this->controllerConfig()->findActionEnabled) {
-            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-        }
-
-        try {
-            $data = $this->crudService->find($this->controllerConfig(), $id);
-            return new JsonResponse($data, Response::HTTP_OK);
-        } catch (\Throwable $throwable) {
-            return new JsonResponse(null, Response::HTTP_BAD_REQUEST);
-        }
+        return $this->crudControllerService->find($this->controllerConfig(), $id);
     }
 
     /**
@@ -64,20 +42,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function create(Request $request): JsonResponse
     {
-        if (!$this->controllerConfig()->createActionEnabled) {
-            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-        }
-
-        try {
-            $command = new CreateEntityCommand($this->controllerConfig()->entityClassName, $request->toArray());
-            $this->dispatchMessage($command);
-
-            return new JsonResponse([
-                'message' => $this->crudService->createdMessage($this->controllerConfig()->entityClassName)
-            ], Response::HTTP_CREATED);
-        } catch (\Throwable $exception) {
-            return new JsonResponse(null, Response::HTTP_BAD_REQUEST);
-        }
+        return $this->crudControllerService->create($this->controllerConfig(), $request);
     }
 
     /**
@@ -85,20 +50,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function update(string $id, Request $request): JsonResponse
     {
-        if (!$this->controllerConfig()->updateActionEnabled) {
-            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-        }
-
-        try {
-            $command = new UpdateEntityCommand($this->controllerConfig()->entityClassName, $id, $request->toArray());
-            $this->dispatchMessage($command);
-
-            return new JsonResponse([
-                'message' => $this->crudService->updatedMessage($this->controllerConfig()->entityClassName)
-            ], Response::HTTP_OK);
-        } catch (\Throwable $exception) {
-            return new JsonResponse(null, Response::HTTP_BAD_REQUEST);
-        }
+        return $this->crudControllerService->update($this->controllerConfig(), $id, $request);
     }
 
     /**
@@ -106,19 +58,6 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function delete(string $id): JsonResponse
     {
-        if (!$this->controllerConfig()->deleteActionEnabled) {
-            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-        }
-
-        try {
-            $command = new DeleteEntityCommand($this->controllerConfig()->entityClassName, $id);
-            $this->dispatchMessage($command);
-
-            return new JsonResponse([
-                'message' => $this->crudService->deletedMessage($this->controllerConfig()->entityClassName)
-            ], Response::HTTP_OK);
-        } catch (\Throwable $exception) {
-            return new JsonResponse(null, Response::HTTP_BAD_REQUEST);
-        }
+        return $this->crudControllerService->delete($this->controllerConfig(), $id);
     }
 }
