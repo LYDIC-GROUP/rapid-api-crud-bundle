@@ -6,6 +6,8 @@ namespace LydicGroup\RapidApiCrudBundle\Service;
 use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
+use LydicGroup\RapidApiCrudBundle\Factory\CriteriaFactory;
+use LydicGroup\RapidApiCrudBundle\Factory\SortFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,37 +17,48 @@ use Symfony\Component\Messenger\MessageBusInterface;
 class CrudControllerService
 {
     protected CrudService $crudService;
+    protected CriteriaFactory $criteriaFactory;
+    protected SortFactory $sortFactory;
     protected MessageBusInterface $messageBus;
 
-    public function __construct(CrudService $crudService, MessageBusInterface $messageBus)
+    public function __construct(CrudService $crudService, CriteriaFactory $criteriaFactory, SortFactory $sortFactory, MessageBusInterface $messageBus)
     {
         $this->crudService = $crudService;
+        $this->criteriaFactory = $criteriaFactory;
+        $this->sortFactory = $sortFactory;
         $this->messageBus = $messageBus;
     }
 
     public function list(ControllerConfig $config, Request $request): JsonResponse
     {
-        if (!$config->listActionEnabled) {
+        if (!$config->isListActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 10);
+
         try {
-            $criteria = $this->crudService->criteria($config->entityClassName, $request);
-            $data = $this->crudService->list($config->entityClassName, $criteria);
+            $criteria = $this->criteriaFactory->create($config, $request);
+            $sorter = $this->sortFactory->create($config, $request);
+
+            $data = $this->crudService->list($config->getEntityClassName(), $page, $limit, $criteria, $sorter);
             return new JsonResponse($data, Response::HTTP_OK);
         } catch (\Throwable $throwable) {
-            return $this->badResponse($throwable);
+            throw $throwable;
+
+//            return $this->badResponse($throwable);
         }
     }
 
     public function find(ControllerConfig $config, string $id): JsonResponse
     {
-        if (!$config->findActionEnabled) {
+        if (!$config->isFindActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $data = $this->crudService->find($config->entityClassName, $id);
+            $data = $this->crudService->find($config->getEntityClassName(), $id);
             return new JsonResponse($data, Response::HTTP_OK);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
@@ -54,12 +67,12 @@ class CrudControllerService
 
     public function create(ControllerConfig $config, Request $request): JsonResponse
     {
-        if (!$config->createActionEnabled) {
+        if (!$config->isCreateActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $this->crudService->create($config->entityClassName, $request->toArray());
+            $this->crudService->create($config->getEntityClassName(), $request->toArray());
             return new JsonResponse( null, Response::HTTP_CREATED);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
@@ -68,12 +81,12 @@ class CrudControllerService
 
     public function update(ControllerConfig $config, string $id, Request $request): JsonResponse
     {
-        if (!$config->updateActionEnabled) {
+        if (!$config->isUpdateActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $this->crudService->update($config->entityClassName, $id, $request->toArray());
+            $this->crudService->update($config->getEntityClassName(), $id, $request->toArray());
             return new JsonResponse(null, Response::HTTP_OK);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
@@ -82,12 +95,12 @@ class CrudControllerService
 
     public function delete(ControllerConfig $config, string $id): JsonResponse
     {
-        if (!$config->deleteActionEnabled) {
+        if (!$config->isDeleteActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $this->crudService->delete($config->entityClassName, $id);
+            $this->crudService->delete($config->getEntityClassName(), $id);
             return new JsonResponse(null, Response::HTTP_OK);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);

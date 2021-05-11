@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace LydicGroup\RapidApiCrudBundle\Service;
 
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use LydicGroup\RapidApiCrudBundle\Builder\CriteriaBuilder;
 use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
@@ -12,6 +13,10 @@ use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ObjectRepository;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
+use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiCriteriaInterface;
+use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiSortInterface;
+use LydicGroup\RapidApiCrudBundle\Repository\EntityRepository;
+use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
@@ -28,6 +33,7 @@ class CrudService
     private NormalizerInterface $objectNormalizer;
     private DenormalizerInterface $objectDenormalizer;
     private MessageBusInterface $messageBus;
+    private EntityRepositoryInterface $entityRepository;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -35,7 +41,8 @@ class CrudService
         ValidatorInterface $validator,
         NormalizerInterface $objectNormalizer,
         DenormalizerInterface $objectDenormalizer,
-        MessageBusInterface $messageBus
+        MessageBusInterface $messageBus,
+        EntityRepositoryInterface $entityRepository
     )
     {
         $this->entityManager = $entityManager;
@@ -44,26 +51,7 @@ class CrudService
         $this->objectNormalizer = $objectNormalizer;
         $this->objectDenormalizer = $objectDenormalizer;
         $this->messageBus = $messageBus;
-    }
-
-    public function entityRepository(string $className): ObjectRepository
-    {
-        return $this->entityManager->getRepository($className);
-    }
-
-    /**
-     * @throws NotFoundException
-     */
-    public function entityById(string $className, string $id): object
-    {
-        $classMetadata = $this->entityManager->getClassMetadata($className);
-        $entityIdFieldName = current($classMetadata->getIdentifier());
-        $entity = $this->entityRepository($className)->findOneBy([$entityIdFieldName => $id]);
-        if (is_null($entity)) {
-            throw new NotFoundException();
-        }
-
-        return $entity;
+        $this->entityRepository = $entityRepository;
     }
 
     /**
@@ -113,16 +101,21 @@ class CrudService
     /**
      * @throws ExceptionInterface
      */
-    public function list(string $entityClassName, array $criteria): array
+    public function list(string $className, int $page , int $limit, RapidApiCriteriaInterface $criteria, RapidApiSortInterface $sorter): array
     {
-        $className = $entityClassName;
+        $queryBuilder = $this->entityRepository->getQueryBuilder($className);
+
+        //Apply filtering
+        $queryBuilder = $criteria->get($queryBuilder);
+        //Apply sorts
+        $queryBuilder = $sorter->get($queryBuilder);
+
+        //Set paging limits
+        $queryBuilder->setFirstResult(($page - 1) * $limit);
+        $queryBuilder->setMaxResults($limit);
+
         $output = [];
-
-        foreach ($this->entityRepository($className)->findBy($criteria) as $entity) {
-            if (!$entity instanceof RapidApiCrudEntity) {
-                continue;
-            }
-
+        foreach($queryBuilder->getQuery()->getResult() as $entity) {
             $output[] = $this->entityToArray($entity, 'list');
         }
 
@@ -135,7 +128,7 @@ class CrudService
      */
     public function find(string $entityClassName, string $id): array
     {
-        $entity = $this->entityById($entityClassName, $id);
+        $entity = $this->entityRepository->find($entityClassName, $id);
         if (!$entity instanceof RapidApiCrudEntity) {
             return [];
         }

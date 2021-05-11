@@ -24,7 +24,6 @@ class CriteriaBuilder
     public function build(string $className, Request $request): array
     {
         $criteria = [];
-
         foreach ($this->fieldAndAssocNames($className) as $name) {
             if ($request->query->has($name)) {
                 $criteria[$name] = $request->query->get($name);
