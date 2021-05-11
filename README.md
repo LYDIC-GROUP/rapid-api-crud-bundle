@@ -40,11 +40,7 @@ Feel free to use the CrudControllerService for route functionality.
 If you need even more specific logic, use the CrudService.
 
 ## Roadmap
-- Extend this documentation with examples
-- Create more specific exceptions
-- Add the possibility for adding/removing _one_ or several (not all) entities from an association collection
-- Make it possible to use annotation groups for creating/updating entities (not just GET methods)
-- TODO's in code 
+Take a look at our [kanban board here](https://github.com/LYDIC-GROUP/rapid-api-crud-bundle/projects/1)
 
 ## Support
 
