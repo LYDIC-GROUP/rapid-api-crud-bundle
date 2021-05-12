@@ -1,6 +1,6 @@
 {
     "name": "lydic-group/rapid-api-crud",
-    "description": "This software enables rapid and flexible Symfony CRUD API development. Work in progress!",
+    "description": "This software enables rapid and flexible Symfony CRUD API development.",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -27,7 +27,7 @@
         "lydic-group/filtering": "^0.1.0"
     },
     "autoload": {
-        "psr-4": { "LydicGroup\\RapidApiCrudBundle\\": "" },
+        "psr-4": { "LydicGroup\\RapidApiCrudBundle\\": "src/" },
         "exclude-from-classmap": ["/Tests/"]
     }
 }

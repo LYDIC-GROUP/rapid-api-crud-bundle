@@ -13,7 +13,7 @@ class RapidApiCrudExtension extends Extension
     public function load(array $configs, ContainerBuilder $container)
     {
         // Using XML as opposed to YAML to prevent a dependency to the yaml file loader (best practice)
-        $loader = new XmlFileLoader($container, new FileLocator(dirname(__DIR__).'/Resources/config'));
+        $loader = new XmlFileLoader($container, new FileLocator(dirname(__DIR__) . '/Resources/config'));
         $loader->load('services.xml');
     }
 }
