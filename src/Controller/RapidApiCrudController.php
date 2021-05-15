@@ -8,6 +8,7 @@ use LydicGroup\RapidApiCrudBundle\Service\CrudControllerService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 abstract class RapidApiCrudController extends AbstractController
@@ -56,7 +57,7 @@ abstract class RapidApiCrudController extends AbstractController
     /**
      * @Route("/{id}", name="delete", methods={"DELETE"})
      */
-    public function delete(string $id): JsonResponse
+    public function delete(string $id): Response
     {
         return $this->crudControllerService->delete($this->controllerConfig(), $id);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace LydicGroup\RapidApiCrudBundle\CommandHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
 use LydicGroup\RapidApiCrudBundle\Service\CrudService;
 use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
@@ -26,7 +27,7 @@ class CreateEntityCommandHandler implements MessageHandlerInterface
      * @throws ExceptionInterface
      * @throws RapidApiCrudException
      */
-    public function __invoke(CreateEntityCommand $command): void
+    public function __invoke(CreateEntityCommand $command): RapidApiCrudEntity
     {
         $data = $command->data;
 
@@ -36,5 +37,7 @@ class CreateEntityCommandHandler implements MessageHandlerInterface
 
         $this->entityManager->persist($entity);
         $this->entityManager->flush();
+
+        return $entity;
     }
 }

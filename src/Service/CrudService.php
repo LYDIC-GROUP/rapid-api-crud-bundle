@@ -19,6 +19,7 @@ use LydicGroup\RapidApiCrudBundle\Repository\EntityRepository;
 use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -101,7 +102,7 @@ class CrudService
     /**
      * @throws ExceptionInterface
      */
-    public function list(string $className, int $page , int $limit, RapidApiCriteriaInterface $criteria, RapidApiSortInterface $sorter): array
+    public function list(string $className, int $page , int $limit, RapidApiCriteriaInterface $criteria, RapidApiSortInterface $sorter): Paginator
     {
         $queryBuilder = $this->entityRepository->getQueryBuilder($className);
 
@@ -114,38 +115,41 @@ class CrudService
         $queryBuilder->setFirstResult(($page - 1) * $limit);
         $queryBuilder->setMaxResults($limit);
 
-        $output = [];
-        foreach($queryBuilder->getQuery()->getResult() as $entity) {
-            $output[] = $this->entityToArray($entity, 'list');
-        }
-
-        return $output;
+        return new Paginator($queryBuilder);
     }
 
     /**
      * @throws ExceptionInterface
      * @throws NotFoundException
      */
-    public function find(string $entityClassName, string $id): array
+    public function find(string $entityClassName, string $id): RapidApiCrudEntity
     {
         $entity = $this->entityRepository->find($entityClassName, $id);
         if (!$entity instanceof RapidApiCrudEntity) {
-            return [];
+            throw new NotFoundException();
         }
 
-        return $this->entityToArray($entity);
+        return $entity;
     }
 
-    public function create(string $entityClassName, array $data): void
+    public function create(string $entityClassName, array $data): RapidApiCrudEntity
     {
         $command = new CreateEntityCommand($entityClassName, $data);
-        $this->messageBus->dispatch($command);
+        $envelope = $this->messageBus->dispatch($command);
+
+        /** @var HandledStamp $stamp */
+        $stamp = $envelope->last(HandledStamp::class);
+        return $stamp->getResult();
     }
 
-    public function update(string $entityClassName, string $id, array $data): void
+    public function update(string $entityClassName, string $id, array $data): RapidApiCrudEntity
     {
         $command = new UpdateEntityCommand($entityClassName, $id, $data);
-        $this->messageBus->dispatch($command);
+        $envelope = $this->messageBus->dispatch($command);
+
+        /** @var HandledStamp $stamp */
+        $stamp = $envelope->last(HandledStamp::class);
+        return $stamp->getResult();
     }
 
     public function delete(string $entityClassName, string $id): void

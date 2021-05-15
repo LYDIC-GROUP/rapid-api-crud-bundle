@@ -8,11 +8,13 @@ use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
 use LydicGroup\RapidApiCrudBundle\Factory\CriteriaFactory;
 use LydicGroup\RapidApiCrudBundle\Factory\SortFactory;
+use LydicGroup\RapidApiCrudBundle\Serializer\Serializer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Serializer\SerializerInterface;
 
 class CrudControllerService
 {
@@ -20,13 +22,27 @@ class CrudControllerService
     protected CriteriaFactory $criteriaFactory;
     protected SortFactory $sortFactory;
     protected MessageBusInterface $messageBus;
+    protected SerializerInterface $serializer;
 
-    public function __construct(CrudService $crudService, CriteriaFactory $criteriaFactory, SortFactory $sortFactory, MessageBusInterface $messageBus)
+    public function __construct(CrudService $crudService, CriteriaFactory $criteriaFactory, SortFactory $sortFactory, MessageBusInterface $messageBus, SerializerInterface $serializer)
     {
         $this->crudService = $crudService;
         $this->criteriaFactory = $criteriaFactory;
         $this->sortFactory = $sortFactory;
         $this->messageBus = $messageBus;
+        $this->serializer = $serializer;
+    }
+
+    /**
+     * Returns a JsonResponse that uses the serializer component if enabled, or json_encode.
+     */
+    protected function json($data, int $status = 200, array $headers = [], array $context = []): JsonResponse
+    {
+        $json = $this->serializer->serialize($data, 'json', array_merge([
+            'json_encode_options' => JsonResponse::DEFAULT_ENCODING_OPTIONS,
+        ], $context));
+
+        return new JsonResponse($json, $status, $headers, true);
     }
 
     public function list(ControllerConfig $config, Request $request): JsonResponse
@@ -42,12 +58,21 @@ class CrudControllerService
             $criteria = $this->criteriaFactory->create($config, $request);
             $sorter = $this->sortFactory->create($config, $request);
 
-            $data = $this->crudService->list($config->getEntityClassName(), $page, $limit, $criteria, $sorter);
-            return new JsonResponse($data, Response::HTTP_OK);
+            $paginator = $this->crudService->list($config->getEntityClassName(), $page, $limit, $criteria, $sorter);
+            return $this->json(
+                $paginator->getIterator(),
+                Response::HTTP_OK,
+                [
+                    'Paging-rows' => $paginator->count(),
+                    'Paging-page' => $page,
+                    'Paging-limit' => $paginator->getQuery()->getMaxResults()
+                ],
+                [
+                    'groups' => 'list'
+                ]
+            );
         } catch (\Throwable $throwable) {
-            throw $throwable;
-
-//            return $this->badResponse($throwable);
+            return $this->badResponse($throwable);
         }
     }
 
@@ -58,8 +83,8 @@ class CrudControllerService
         }
 
         try {
-            $data = $this->crudService->find($config->getEntityClassName(), $id);
-            return new JsonResponse($data, Response::HTTP_OK);
+            $entity = $this->crudService->find($config->getEntityClassName(), $id);
+            return $this->json($entity, Response::HTTP_OK, [], ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -72,8 +97,8 @@ class CrudControllerService
         }
 
         try {
-            $this->crudService->create($config->getEntityClassName(), $request->toArray());
-            return new JsonResponse( null, Response::HTTP_CREATED);
+            $entity = $this->crudService->create($config->getEntityClassName(), $request->toArray());
+            return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -86,14 +111,14 @@ class CrudControllerService
         }
 
         try {
-            $this->crudService->update($config->getEntityClassName(), $id, $request->toArray());
-            return new JsonResponse(null, Response::HTTP_OK);
+            $entity = $this->crudService->update($config->getEntityClassName(), $id, $request->toArray());
+            return $this->json($entity, Response::HTTP_OK, [], ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
     }
 
-    public function delete(ControllerConfig $config, string $id): JsonResponse
+    public function delete(ControllerConfig $config, string $id): Response
     {
         if (!$config->isDeleteActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
@@ -101,7 +126,7 @@ class CrudControllerService
 
         try {
             $this->crudService->delete($config->getEntityClassName(), $id);
-            return new JsonResponse(null, Response::HTTP_OK);
+            return new Response(null, Response::HTTP_NO_CONTENT);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
