@@ -11,14 +11,16 @@ namespace LydicGroup\RapidApiCrudBundle\QueryBuilder;
 
 use Doctrine\ORM\QueryBuilder;
 use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
+use LydicGroup\RapidApiCrudBundle\Enum\SorterMode;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\BasicRapidApiCriteria;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiSortInterface;
+use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
+use LydicGroup\RapidApiCrudBundle\Provider\RapidApiContextProvider;
 use Symfony\Component\HttpFoundation\Request;
 
 class BasicRapidApiSort implements RapidApiSortInterface
 {
-    private Request $request;
-    private ControllerConfig $config;
+    private RapidApiContextProvider $contextProvider;
 
     private string $expressionKey;
     private string $propertyPrefix;
@@ -26,35 +28,23 @@ class BasicRapidApiSort implements RapidApiSortInterface
     /**
      * SorterFactory constructor.
      */
-    public function __construct()
+    public function __construct(RapidApiContextProvider $contextProvider)
     {
+        $this->contextProvider = $contextProvider;
+
         $this->expressionKey = 'sort';
         $this->propertyPrefix = 'entity.';
     }
 
-    /**
-     * @param Request $request
-     * @return BasicRapidApiCriteria
-     */
-    public function setRequest(Request $request): RapidApiSortInterface
+    public function getSorterMode(): int
     {
-        $this->request = $request;
-        return $this;
-    }
-
-    /**
-     * @param ControllerConfig $config
-     * @return BasicRapidApiCriteria
-     */
-    public function setConfig(ControllerConfig $config): RapidApiSortInterface
-    {
-        $this->config = $config;
-        return $this;
+        return SorterMode::BASIC;
     }
 
     public function get(QueryBuilder $queryBuilder): QueryBuilder
     {
-        $sortString = $this->request->get($this->expressionKey);
+        $context = $this->contextProvider->getContext();
+        $sortString = $context->getRequest()->get($this->expressionKey);
 
         if (empty($sortString)) {
             return $queryBuilder;

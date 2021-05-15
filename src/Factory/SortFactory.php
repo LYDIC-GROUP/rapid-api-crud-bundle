@@ -16,15 +16,26 @@ use LydicGroup\RapidApiCrudBundle\QueryBuilder\BasicRapidApiSort;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\ExtendedRapidApiCriteria;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiCriteriaInterface;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiSortInterface;
+use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
 use Symfony\Component\HttpFoundation\Request;
 
 class SortFactory
 {
-    public function create(ControllerConfig $config, Request $request): RapidApiSortInterface
+    private array $sorters;
+
+    /**
+     * @param array $criteria
+     * @return CriteriaFactory
+     */
+    public function addSorter(RapidApiSortInterface $sorter): SortFactory
     {
-        $builder = new BasicRapidApiSort();
-        $builder->setRequest($request);
-        $builder->setConfig($config);
-        return $builder;
+        $this->sorters[$sorter->getSorterMode()] = $sorter;
+
+        return $this;
+    }
+
+    public function create(RapidApiContext $context): RapidApiSortInterface
+    {
+        return $this->sorters[$context->getConfig()->getSorterMode()];
     }
 }

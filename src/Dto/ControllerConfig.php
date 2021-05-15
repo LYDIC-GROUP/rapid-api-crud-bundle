@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace LydicGroup\RapidApiCrudBundle\Dto;
 
 use LydicGroup\RapidApiCrudBundle\Enum\FilterMode;
+use LydicGroup\RapidApiCrudBundle\Enum\SorterMode;
 
 class ControllerConfig
 {
@@ -16,6 +17,7 @@ class ControllerConfig
     private bool $deleteActionEnabled;
 
     private int $filterMode;
+    private int $sorterMode;
 
     public function __construct(string $entityClassName)
     {
@@ -28,6 +30,7 @@ class ControllerConfig
         $this->deleteActionEnabled = true;
 
         $this->filterMode = FilterMode::BASIC;
+        $this->sorterMode = SorterMode::BASIC;
 
         return $this;
     }
@@ -145,6 +148,24 @@ class ControllerConfig
     public function setFilterMode(int $filterMode): ControllerConfig
     {
         $this->filterMode = $filterMode;
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getSorterMode(): int
+    {
+        return $this->sorterMode;
+    }
+
+    /**
+     * @param int $sorterMode
+     * @return ControllerConfig
+     */
+    public function setSorterMode(int $sorterMode): ControllerConfig
+    {
+        $this->sorterMode = $sorterMode;
         return $this;
     }
 }

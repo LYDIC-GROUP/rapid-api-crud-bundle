@@ -12,5 +12,7 @@ use Doctrine\ORM\QueryBuilder;
 
 interface RapidApiCriteriaInterface
 {
+    public function getFilterMode(): int;
+
     public function get(QueryBuilder $queryBuilder): QueryBuilder;
 }

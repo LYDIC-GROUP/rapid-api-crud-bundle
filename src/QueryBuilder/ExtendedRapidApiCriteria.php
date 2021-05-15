@@ -19,12 +19,14 @@ use LydicGroup\Filtering\Filter;
 use LydicGroup\Filtering\FilterGroup;
 use LydicGroup\Filtering\FilterLogicOperator;
 use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
+use LydicGroup\RapidApiCrudBundle\Enum\FilterMode;
+use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
+use LydicGroup\RapidApiCrudBundle\Provider\RapidApiContextProvider;
 use Symfony\Component\HttpFoundation\Request;
 
 class ExtendedRapidApiCriteria implements RapidApiCriteriaInterface
 {
-    private Request $request;
-    private ControllerConfig $config;
+    private RapidApiContextProvider $contextProvider;
 
     private ExpressionParser $parser;
     private string $expressionKey;
@@ -36,40 +38,29 @@ class ExtendedRapidApiCriteria implements RapidApiCriteriaInterface
      * FilterFactory constructor.
      * @param ExpressionParser $parser
      */
-    public function __construct(ExpressionParser $parser)
+    public function __construct(RapidApiContextProvider $contextProvider, ExpressionParser $parser)
     {
+        $this->contextProvider = $contextProvider;
+
         $this->parser = $parser;
         $this->expressionKey = 'filter';
         $this->propertyPrefix = 'entity.';
         $this->joinableEntities = [];
     }
 
-    /**
-     * @param Request $request
-     * @return RapidApiCriteriaInterface
-     */
-    public function setRequest(Request $request): RapidApiCriteriaInterface
+    public function getFilterMode(): int
     {
-        $this->request = $request;
-        return $this;
-    }
-
-    /**
-     * @param ControllerConfig $config
-     * @return RapidApiCriteriaInterface
-     */
-    public function setConfig(ControllerConfig $config): RapidApiCriteriaInterface
-    {
-        $this->config = $config;
-        return $this;
+        return FilterMode::EXTENDED;
     }
 
     public function get(QueryBuilder $queryBuilder): QueryBuilder
     {
+        $context = $this->contextProvider->getContext();
+
         $this->parameterCount = 0;
         $this->joinableEntities = [];
 
-        $filter = urldecode($this->request->get($this->expressionKey));
+        $filter = urldecode($context->getRequest()->get($this->expressionKey));
 
         //If no filters Applied
         if ($filter == null) {

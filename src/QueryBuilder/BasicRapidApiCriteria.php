@@ -12,39 +12,36 @@ namespace LydicGroup\RapidApiCrudBundle\QueryBuilder;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\Mapping\ClassMetadata;
 use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
+use LydicGroup\RapidApiCrudBundle\Enum\FilterMode;
+use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
+use LydicGroup\RapidApiCrudBundle\Provider\RapidApiContextProvider;
 use Symfony\Component\HttpFoundation\Request;
 
 class BasicRapidApiCriteria implements RapidApiCriteriaInterface
 {
-    private Request $request;
-    private ControllerConfig $config;
+    private RapidApiContextProvider $contextProvider;
 
     /**
-     * @param Request $request
-     * @return BasicRapidApiCriteria
+     * BasicRapidApiCriteria constructor.
+     * @param RapidApiContextProvider $contextProvider
      */
-    public function setRequest(Request $request): RapidApiCriteriaInterface
+    public function __construct(RapidApiContextProvider $contextProvider)
     {
-        $this->request = $request;
-        return $this;
+        $this->contextProvider = $contextProvider;
     }
 
-    /**
-     * @param ControllerConfig $config
-     * @return BasicRapidApiCriteria
-     */
-    public function setConfig(ControllerConfig $config): RapidApiCriteriaInterface
+    public function getFilterMode(): int
     {
-        $this->config = $config;
-        return $this;
+        return FilterMode::BASIC;
     }
 
     public function get(QueryBuilder $queryBuilder): QueryBuilder
     {
+        $context = $this->contextProvider->getContext();
         foreach ($this->fieldAndAssocNames($queryBuilder) as $name) {
-            if ($this->request->query->has($name)) {
+            if ($context->getRequest()->query->has($name)) {
                 $queryBuilder->andWhere(sprintf('entity.%s = :%s', $name, $name));
-                $queryBuilder->setParameter($name, $this->request->query->get($name));
+                $queryBuilder->setParameter($name, $context->getRequest()->query->get($name));
             }
         }
 
@@ -53,7 +50,8 @@ class BasicRapidApiCriteria implements RapidApiCriteriaInterface
 
     private function classMetadata(QueryBuilder $queryBuilder): ClassMetadata
     {
-        return $queryBuilder->getEntityManager()->getClassMetadata($this->config->getEntityClassName());
+        $context = $this->contextProvider->getContext();
+        return $queryBuilder->getEntityManager()->getClassMetadata($context->getConfig()->getEntityClassName());
     }
 
     private function fieldAndAssocNames(QueryBuilder $queryBuilder): array

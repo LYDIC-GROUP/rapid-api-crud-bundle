@@ -9,6 +9,7 @@ use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
 use LydicGroup\RapidApiCrudBundle\Factory\CriteriaFactory;
 use LydicGroup\RapidApiCrudBundle\Factory\SortFactory;
 use LydicGroup\RapidApiCrudBundle\Serializer\Serializer;
+use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,20 +46,20 @@ class CrudControllerService
         return new JsonResponse($json, $status, $headers, true);
     }
 
-    public function list(ControllerConfig $config, Request $request): JsonResponse
+    public function list(RapidApiContext $context): JsonResponse
     {
-        if (!$config->isListActionEnabled()) {
+        if (!$context->getConfig()->isListActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
-        $page = (int) $request->query->get('page', 1);
-        $limit = (int) $request->query->get('limit', 10);
+        $page = (int) $context->getRequest()->query->get('page', 1);
+        $limit = (int) $context->getRequest()->query->get('limit', 10);
 
         try {
-            $criteria = $this->criteriaFactory->create($config, $request);
-            $sorter = $this->sortFactory->create($config, $request);
+            $criteria = $this->criteriaFactory->create($context);
+            $sorter = $this->sortFactory->create($context);
 
-            $paginator = $this->crudService->list($config->getEntityClassName(), $page, $limit, $criteria, $sorter);
+            $paginator = $this->crudService->list($context->getConfig()->getEntityClassName(), $page, $limit, $criteria, $sorter);
             return $this->json(
                 $paginator->getIterator(),
                 Response::HTTP_OK,
@@ -72,60 +73,61 @@ class CrudControllerService
                 ]
             );
         } catch (\Throwable $throwable) {
+            throw $throwable;
             return $this->badResponse($throwable);
         }
     }
 
-    public function find(ControllerConfig $config, string $id): JsonResponse
+    public function find(RapidApiContext $context, string $id): JsonResponse
     {
-        if (!$config->isFindActionEnabled()) {
+        if (!$context->getConfig()->isFindActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $entity = $this->crudService->find($config->getEntityClassName(), $id);
+            $entity = $this->crudService->find($context->getConfig()->getEntityClassName(), $id);
             return $this->json($entity, Response::HTTP_OK, [], ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
     }
 
-    public function create(ControllerConfig $config, Request $request): JsonResponse
+    public function create(RapidApiContext $context): JsonResponse
     {
-        if (!$config->isCreateActionEnabled()) {
+        if (!$context->getConfig()->isCreateActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $entity = $this->crudService->create($config->getEntityClassName(), $request->toArray());
+            $entity = $this->crudService->create($context->getConfig()->getEntityClassName(), $context->getRequest()->toArray());
             return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
     }
 
-    public function update(ControllerConfig $config, string $id, Request $request): JsonResponse
+    public function update(RapidApiContext $context, string $id): JsonResponse
     {
-        if (!$config->isUpdateActionEnabled()) {
+        if (!$context->getConfig()->isUpdateActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $entity = $this->crudService->update($config->getEntityClassName(), $id, $request->toArray());
+            $entity = $this->crudService->update($context->getConfig()->getEntityClassName(), $id, $context->getRequest()->toArray());
             return $this->json($entity, Response::HTTP_OK, [], ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
     }
 
-    public function delete(ControllerConfig $config, string $id): Response
+    public function delete(RapidApiContext $context, string $id): Response
     {
-        if (!$config->isDeleteActionEnabled()) {
+        if (!$context->getConfig()->isDeleteActionEnabled()) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
         try {
-            $this->crudService->delete($config->getEntityClassName(), $id);
+            $this->crudService->delete($context->getConfig()->getEntityClassName(), $id);
             return new Response(null, Response::HTTP_NO_CONTENT);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);

@@ -12,5 +12,7 @@ use Doctrine\ORM\QueryBuilder;
 
 interface RapidApiSortInterface
 {
+    public function getSorterMode(): int;
+
     public function get(QueryBuilder $queryBuilder): QueryBuilder;
 }

@@ -14,36 +14,30 @@ use LydicGroup\RapidApiCrudBundle\Enum\FilterMode;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\BasicRapidApiCriteria;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\ExtendedRapidApiCriteria;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiCriteriaInterface;
+use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
 use Symfony\Component\HttpFoundation\Request;
 
 class CriteriaFactory
 {
-    private ExpressionParser $parser;
+    private array $criteria;
 
     /**
-     * CriteriaFactory constructor.
-     * @param ExpressionParser $parser
+     * @param array $criteria
+     * @return CriteriaFactory
      */
-    public function __construct(ExpressionParser $parser)
+    public function addCriteria(RapidApiCriteriaInterface $criteria): CriteriaFactory
     {
-        $this->parser = $parser;
+        $this->criteria[$criteria->getFilterMode()] = $criteria;
+
+        return $this;
     }
 
-    public function create(ControllerConfig $config, Request $request): RapidApiCriteriaInterface
+    /**
+     * @param RapidApiContext $context
+     * @return RapidApiCriteriaInterface
+     */
+    public function create(RapidApiContext $context): RapidApiCriteriaInterface
     {
-        switch ($config->getFilterMode()) {
-            case FilterMode::BASIC:
-                $builder = new BasicRapidApiCriteria();
-                $builder->setRequest($request);
-                $builder->setConfig($config);
-
-                return $builder;
-            case FilterMode::EXTENDED:
-                $builder = new ExtendedRapidApiCriteria($this->parser);
-                $builder->setConfig($config);
-                $builder->setRequest($request);
-
-                return $builder;
-        }
+        return $this->criteria[$context->getConfig()->getFilterMode()];
     }
 }

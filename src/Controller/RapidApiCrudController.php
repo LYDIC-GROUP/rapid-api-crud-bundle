@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace LydicGroup\RapidApiCrudBundle\Controller;
 
 use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
+use LydicGroup\RapidApiCrudBundle\Provider\RapidApiContextProvider;
 use LydicGroup\RapidApiCrudBundle\Service\CrudControllerService;
+use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,20 +16,22 @@ use Symfony\Component\Routing\Annotation\Route;
 abstract class RapidApiCrudController extends AbstractController
 {
     private CrudControllerService $crudControllerService;
+    private RapidApiContextProvider $contextProvider;
 
-    public function __construct(CrudControllerService $crudControllerService)
+    public function __construct(CrudControllerService $crudControllerService, RapidApiContextProvider $contextProvider)
     {
         $this->crudControllerService = $crudControllerService;
+        $this->contextProvider = $contextProvider;
     }
 
-    protected abstract function controllerConfig(): ControllerConfig;
+    public abstract function controllerConfig(): ControllerConfig;
 
     /**
      * @Route("", name="list", methods={"GET"})
      */
     public function list(Request $request): JsonResponse
     {
-        return $this->crudControllerService->list($this->controllerConfig(), $request);
+        return $this->crudControllerService->list($this->contextProvider->getContext());
     }
 
     /**
@@ -35,7 +39,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function find(string $id): JsonResponse
     {
-        return $this->crudControllerService->find($this->controllerConfig(), $id);
+        return $this->crudControllerService->find($this->contextProvider->getContext(), $id);
     }
 
     /**
@@ -43,7 +47,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function create(Request $request): JsonResponse
     {
-        return $this->crudControllerService->create($this->controllerConfig(), $request);
+        return $this->crudControllerService->create($this->contextProvider->getContext());
     }
 
     /**
@@ -51,7 +55,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function update(string $id, Request $request): JsonResponse
     {
-        return $this->crudControllerService->update($this->controllerConfig(), $id, $request);
+        return $this->crudControllerService->update($this->contextProvider->getContext(), $id);
     }
 
     /**
@@ -59,6 +63,6 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function delete(string $id): Response
     {
-        return $this->crudControllerService->delete($this->controllerConfig(), $id);
+        return $this->crudControllerService->delete($this->contextProvider->getContext(), $id);
     }
 }

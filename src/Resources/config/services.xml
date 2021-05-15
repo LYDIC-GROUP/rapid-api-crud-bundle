@@ -7,5 +7,15 @@
     <services>
         <defaults autowire="true" autoconfigure="true" />
         <prototype namespace="LydicGroup\RapidApiCrudBundle\" resource="../../*" exclude="../../{DependencyInjection,Entity,Tests,Kernel.php}"/>
+
+        <service id="LydicGroup\Filtering\ExpressionParser" />
+        <service id="LydicGroup\Filtering\ExpressionLexer" />
+
+        <instanceof id="LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiCriteriaInterface">
+            <tag name="rapid.api.criteria"/>
+        </instanceof>
+        <instanceof id="LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiSortInterface">
+            <tag name="rapid.api.sorter"/>
+        </instanceof>
     </services>
 </container>
