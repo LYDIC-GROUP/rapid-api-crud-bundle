@@ -59,7 +59,7 @@ class CrudControllerService
             $criteria = $this->criteriaFactory->create($context);
             $sorter = $this->sortFactory->create($context);
 
-            $paginator = $this->crudService->list($context->getConfig()->getEntityClassName(), $page, $limit, $criteria, $sorter);
+            $paginator = $this->crudService->list($context->getEntityClassName(), $page, $limit, $criteria, $sorter);
             return $this->json(
                 $paginator->getIterator(),
                 Response::HTTP_OK,
@@ -85,7 +85,7 @@ class CrudControllerService
         }
 
         try {
-            $entity = $this->crudService->find($context->getConfig()->getEntityClassName(), $id);
+            $entity = $this->crudService->find($context->getEntityClassName(), $id);
             return $this->json($entity, Response::HTTP_OK, [], ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
@@ -99,7 +99,7 @@ class CrudControllerService
         }
 
         try {
-            $entity = $this->crudService->create($context->getConfig()->getEntityClassName(), $context->getRequest()->toArray());
+            $entity = $this->crudService->create($context->getEntityClassName(), $context->getRequest()->toArray());
             return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
@@ -113,7 +113,7 @@ class CrudControllerService
         }
 
         try {
-            $entity = $this->crudService->update($context->getConfig()->getEntityClassName(), $id, $context->getRequest()->toArray());
+            $entity = $this->crudService->update($context->getEntityClassName(), $id, $context->getRequest()->toArray());
             return $this->json($entity, Response::HTTP_OK, [], ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
@@ -127,7 +127,7 @@ class CrudControllerService
         }
 
         try {
-            $this->crudService->delete($context->getConfig()->getEntityClassName(), $id);
+            $this->crudService->delete($context->getEntityClassName(), $id);
             return new Response(null, Response::HTTP_NO_CONTENT);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);

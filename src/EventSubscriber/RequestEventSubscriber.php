@@ -9,6 +9,7 @@
 namespace LydicGroup\RapidApiCrudBundle\EventSubscriber;
 
 use LydicGroup\RapidApiCrudBundle\Controller\RapidApiCrudController;
+use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
 use LydicGroup\RapidApiCrudBundle\RapidApiCrudBundle;
 use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -21,6 +22,17 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 class RequestEventSubscriber implements EventSubscriberInterface
 {
+    private ControllerConfig $defaultControllerConfig;
+
+    /**
+     * RequestEventSubscriber constructor.
+     * @param ControllerConfig $defaultControllerConfig
+     */
+    public function __construct(ControllerConfig $defaultControllerConfig)
+    {
+        $this->defaultControllerConfig = $defaultControllerConfig;
+    }
+
     public static function getSubscribedEvents()
     {
         return [
@@ -39,7 +51,7 @@ class RequestEventSubscriber implements EventSubscriberInterface
         }
 
         if ($controller instanceof RapidApiCrudController) {
-            $context = new RapidApiContext($event->getRequest(), $controller->controllerConfig());
+            $context = new RapidApiContext($controller->entityClassName(), $event->getRequest(), $controller->controllerConfig($this->defaultControllerConfig));
             $request->attributes->set(RapidApiCrudBundle::CONTEXT_ATTRIBUTE_NAME, $context);
         }
     }

@@ -24,7 +24,12 @@ abstract class RapidApiCrudController extends AbstractController
         $this->contextProvider = $contextProvider;
     }
 
-    public abstract function controllerConfig(): ControllerConfig;
+    public abstract function entityClassName(): string;
+
+    public function controllerConfig(ControllerConfig $config): ControllerConfig
+    {
+        return $config;
+    }
 
     /**
      * @Route("", name="list", methods={"GET"})

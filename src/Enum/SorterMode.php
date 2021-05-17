@@ -9,7 +9,18 @@
 
 namespace LydicGroup\RapidApiCrudBundle\Enum;
 
+use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
+
 class SorterMode
 {
     const BASIC = 1;
+
+    public static function fromLabel(string $label) {
+        switch ($label) {
+            case "BASIC":
+                return 1;
+            default:
+                throw new NotFoundException(sprintf('Filter mode %s not found', $label));
+        }
+    }
 }

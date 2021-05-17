@@ -51,7 +51,7 @@ class BasicRapidApiCriteria implements RapidApiCriteriaInterface
     private function classMetadata(QueryBuilder $queryBuilder): ClassMetadata
     {
         $context = $this->contextProvider->getContext();
-        return $queryBuilder->getEntityManager()->getClassMetadata($context->getConfig()->getEntityClassName());
+        return $queryBuilder->getEntityManager()->getClassMetadata($context->getEntityClassName());
     }
 
     private function fieldAndAssocNames(QueryBuilder $queryBuilder): array

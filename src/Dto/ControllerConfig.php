@@ -8,8 +8,6 @@ use LydicGroup\RapidApiCrudBundle\Enum\SorterMode;
 
 class ControllerConfig
 {
-    private string $entityClassName;
-
     private bool $listActionEnabled;
     private bool $findActionEnabled;
     private bool $createActionEnabled;
@@ -19,10 +17,8 @@ class ControllerConfig
     private int $filterMode;
     private int $sorterMode;
 
-    public function __construct(string $entityClassName)
+    public function __construct()
     {
-        $this->entityClassName = $entityClassName;
-
         $this->listActionEnabled = true;
         $this->findActionEnabled = true;
         $this->createActionEnabled = true;
@@ -33,14 +29,6 @@ class ControllerConfig
         $this->sorterMode = SorterMode::BASIC;
 
         return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getEntityClassName(): string
-    {
-        return $this->entityClassName;
     }
 
     /**

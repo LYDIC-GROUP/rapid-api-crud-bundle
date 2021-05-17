@@ -14,6 +14,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 class RapidApiContext
 {
+    private string $entityClassName;
+
     private Request $request;
     private ControllerConfig $config;
 
@@ -22,10 +24,19 @@ class RapidApiContext
      * @param Request $request
      * @param ControllerConfig $config
      */
-    public function __construct(Request $request, ControllerConfig $config)
+    public function __construct(string $entityClassName, Request $request, ControllerConfig $config)
     {
+        $this->entityClassName = $entityClassName;
         $this->request = $request;
         $this->config = $config;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEntityClassName(): string
+    {
+        return $this->entityClassName;
     }
 
     /**

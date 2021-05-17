@@ -11,6 +11,8 @@
         <service id="LydicGroup\Filtering\ExpressionParser" />
         <service id="LydicGroup\Filtering\ExpressionLexer" />
 
+        <service id="LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig" shared="false"/>
+
         <instanceof id="LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiCriteriaInterface">
             <tag name="rapid.api.criteria"/>
         </instanceof>

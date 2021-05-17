@@ -9,8 +9,21 @@
 
 namespace LydicGroup\RapidApiCrudBundle\Enum;
 
+use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
+
 class FilterMode
 {
     const BASIC = 1;
     CONST EXTENDED = 2;
+
+    public static function fromLabel(string $label) {
+        switch ($label) {
+            case "BASIC":
+                return 1;
+            case "EXTENDED":
+                return 2;
+            default:
+                throw new NotFoundException(sprintf('Filter mode %s not found', $label));
+        }
+    }
 }
