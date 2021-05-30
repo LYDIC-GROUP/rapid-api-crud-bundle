@@ -46,9 +46,6 @@ class CreateAssociationCommandHandler implements MessageHandlerInterface
 
         $assocClassName = $classMetadata->getAssociationTargetClass($command->assocName);
         $assocEntity = $this->crudService->entityById($assocClassName, $command->assocId);
-        if (!$assocEntity) {
-            throw new NotFoundException();
-        }
 
         if ($classMetadata->isSingleValuedAssociation($command->assocName)) {
             $this->propertyAccessor->setValue($entity, $command->assocName, $assocEntity);

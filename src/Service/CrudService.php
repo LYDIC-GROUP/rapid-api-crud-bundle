@@ -89,6 +89,19 @@ class CrudService
     }
 
     /**
+     * @throws NotFoundException
+     */
+    public function entityById(string $className, string $id): RapidApiCrudEntity
+    {
+        $entity = $this->entityManager->find($className, $id);
+        if (!$entity instanceof RapidApiCrudEntity) {
+            throw new NotFoundException();
+        }
+
+        return $entity;
+    }
+
+    /**
      * @throws ExceptionInterface
      */
     public function arrayToEntity(array $data, string $className, string $group, object $objectToPopulate = null): RapidApiCrudEntity

@@ -5,14 +5,11 @@ namespace LydicGroup\RapidApiCrudBundle\CommandHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\PersistentCollection;
-use LydicGroup\RapidApiCrudBundle\Command\CreateAssociationCommand;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteAssociationCommand;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
 use LydicGroup\RapidApiCrudBundle\Service\CrudService;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
@@ -22,7 +19,6 @@ class DeleteAssociationCommandHandler implements MessageHandlerInterface
     private EntityManagerInterface $entityManager;
     private CrudService $crudService;
     private PropertyAccessorInterface $propertyAccessor;
-
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -50,9 +46,6 @@ class DeleteAssociationCommandHandler implements MessageHandlerInterface
 
         $assocClassName = $classMetadata->getAssociationTargetClass($command->assocName);
         $assocEntity = $this->crudService->entityById($assocClassName, $command->assocId);
-        if (!$assocEntity) {
-            throw new NotFoundException();
-        }
 
         if ($classMetadata->isSingleValuedAssociation($command->assocName)) {
             $this->propertyAccessor->setValue($entity, $command->assocName, null);
