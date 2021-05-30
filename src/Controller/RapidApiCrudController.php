@@ -5,8 +5,7 @@ namespace LydicGroup\RapidApiCrudBundle\Controller;
 
 use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
 use LydicGroup\RapidApiCrudBundle\Provider\RapidApiContextProvider;
-use LydicGroup\RapidApiCrudBundle\Service\CrudControllerService;
-use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
+use LydicGroup\RapidApiCrudBundle\Service\ControllerFacade;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,12 +14,12 @@ use Symfony\Component\Routing\Annotation\Route;
 
 abstract class RapidApiCrudController extends AbstractController
 {
-    private CrudControllerService $crudControllerService;
+    private ControllerFacade $crudFacade;
     private RapidApiContextProvider $contextProvider;
 
-    public function __construct(CrudControllerService $crudControllerService, RapidApiContextProvider $contextProvider)
+    public function __construct(ControllerFacade $crudControllerService, RapidApiContextProvider $contextProvider)
     {
-        $this->crudControllerService = $crudControllerService;
+        $this->crudFacade = $crudControllerService;
         $this->contextProvider = $contextProvider;
     }
 
@@ -34,9 +33,9 @@ abstract class RapidApiCrudController extends AbstractController
     /**
      * @Route("", name="list", methods={"GET"})
      */
-    public function list(Request $request): JsonResponse
+    public function list(): JsonResponse
     {
-        return $this->crudControllerService->list($this->contextProvider->getContext());
+        return $this->crudFacade->list($this->contextProvider->getContext());
     }
 
     /**
@@ -44,23 +43,39 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function find(string $id): JsonResponse
     {
-        return $this->crudControllerService->find($this->contextProvider->getContext(), $id);
+        return $this->crudFacade->find($this->contextProvider->getContext(), $id);
+    }
+
+    /**
+     * @Route("/{id}/{assocName}", name="find_assoc", methods={"GET"})
+     */
+    public function findAssoc(string $id, string $assocName): JsonResponse
+    {
+        return $this->crudFacade->findAssoc($this->contextProvider->getContext(), $id, $assocName);
     }
 
     /**
      * @Route("", name="create", methods={"POST"})
      */
-    public function create(Request $request): JsonResponse
+    public function create(): JsonResponse
     {
-        return $this->crudControllerService->create($this->contextProvider->getContext());
+        return $this->crudFacade->create($this->contextProvider->getContext());
+    }
+
+    /**
+     * @Route("/{id}/{assocName}/{assocId}", name="create_assoc", methods={"POST"})
+     */
+    public function createAssoc(string $id, string $assocName, string $assocId): JsonResponse
+    {
+        return $this->crudFacade->createAssoc($this->contextProvider->getContext(), $id, $assocName, $assocId);
     }
 
     /**
      * @Route("/{id}", name="update", methods={"PUT"})
      */
-    public function update(string $id, Request $request): JsonResponse
+    public function update(string $id): JsonResponse
     {
-        return $this->crudControllerService->update($this->contextProvider->getContext(), $id);
+        return $this->crudFacade->update($this->contextProvider->getContext(), $id);
     }
 
     /**
@@ -68,6 +83,14 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function delete(string $id): Response
     {
-        return $this->crudControllerService->delete($this->contextProvider->getContext(), $id);
+        return $this->crudFacade->delete($this->contextProvider->getContext(), $id);
+    }
+
+    /**
+     * @Route("/{id}/{assocName}/{assocId}", name="delete_assoc", methods={"DELETE"})
+     */
+    public function deleteAssoc(string $id, string $assocName, string $assocId): Response
+    {
+        return $this->crudFacade->deleteAssoc($this->contextProvider->getContext(), $id, $assocName, $assocId);
     }
 }

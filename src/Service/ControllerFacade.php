@@ -3,21 +3,19 @@ declare(strict_types=1);
 
 namespace LydicGroup\RapidApiCrudBundle\Service;
 
-use LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
 use LydicGroup\RapidApiCrudBundle\Factory\CriteriaFactory;
 use LydicGroup\RapidApiCrudBundle\Factory\SortFactory;
-use LydicGroup\RapidApiCrudBundle\Serializer\Serializer;
 use LydicGroup\RapidApiCrudBundle\Context\RapidApiContext;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use function Symfony\Component\String\u;
 
-class CrudControllerService
+class ControllerFacade
 {
     protected CrudService $crudService;
     protected CriteriaFactory $criteriaFactory;
@@ -25,13 +23,24 @@ class CrudControllerService
     protected MessageBusInterface $messageBus;
     protected SerializerInterface $serializer;
 
-    public function __construct(CrudService $crudService, CriteriaFactory $criteriaFactory, SortFactory $sortFactory, MessageBusInterface $messageBus, SerializerInterface $serializer)
+    public function __construct(
+        CrudService $crudService,
+        CriteriaFactory $criteriaFactory,
+        SortFactory $sortFactory,
+        MessageBusInterface $messageBus,
+        SerializerInterface $serializer
+    )
     {
         $this->crudService = $crudService;
         $this->criteriaFactory = $criteriaFactory;
         $this->sortFactory = $sortFactory;
         $this->messageBus = $messageBus;
         $this->serializer = $serializer;
+    }
+
+    private function paramToAssocName(string $assocName): string
+    {
+        return u($assocName)->camel()->toString();
     }
 
     /**
@@ -73,7 +82,6 @@ class CrudControllerService
                 ]
             );
         } catch (\Throwable $throwable) {
-            throw $throwable;
             return $this->badResponse($throwable);
         }
     }
@@ -92,6 +100,21 @@ class CrudControllerService
         }
     }
 
+    public function findAssoc(RapidApiContext $context, string $id, string $assocName): JsonResponse
+    {
+        if (!$context->getConfig()->isFindActionEnabled()) {
+            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $assocName = $this->paramToAssocName($assocName);
+            $assocData = $this->crudService->findAssoc($context->getEntityClassName(), $id, $assocName);
+            return $this->json($assocData, Response::HTTP_OK, [], ['groups' => 'detail']);
+        } catch (\Throwable $throwable) {
+            return $this->badResponse($throwable);
+        }
+    }
+
     public function create(RapidApiContext $context): JsonResponse
     {
         if (!$context->getConfig()->isCreateActionEnabled()) {
@@ -100,6 +123,21 @@ class CrudControllerService
 
         try {
             $entity = $this->crudService->create($context->getEntityClassName(), $context->getRequest()->toArray());
+            return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => 'detail']);
+        } catch (\Throwable $throwable) {
+            return $this->badResponse($throwable);
+        }
+    }
+
+    public function createAssoc(RapidApiContext $context, string $id, string $assocName, $assocId): JsonResponse
+    {
+        if (!$context->getConfig()->isCreateActionEnabled()) {
+            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $assocName = $this->paramToAssocName($assocName);
+            $entity = $this->crudService->createAssoc($context->getEntityClassName(), $id, $assocName, $assocId);
             return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => 'detail']);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
@@ -128,6 +166,21 @@ class CrudControllerService
 
         try {
             $this->crudService->delete($context->getEntityClassName(), $id);
+            return new Response(null, Response::HTTP_NO_CONTENT);
+        } catch (\Throwable $throwable) {
+            return $this->badResponse($throwable);
+        }
+    }
+
+    public function deleteAssoc(RapidApiContext $context, string $id, string $assocName, $assocId): Response
+    {
+        if (!$context->getConfig()->isDeleteActionEnabled()) {
+            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $assocName = $this->paramToAssocName($assocName);
+            $this->crudService->deleteAssoc($context->getEntityClassName(), $id, $assocName, $assocId);
             return new Response(null, Response::HTTP_NO_CONTENT);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);

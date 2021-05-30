@@ -5,7 +5,9 @@ namespace LydicGroup\RapidApiCrudBundle\Service;
 
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use LydicGroup\RapidApiCrudBundle\Builder\CriteriaBuilder;
+use LydicGroup\RapidApiCrudBundle\Command\CreateAssociationCommand;
 use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
+use LydicGroup\RapidApiCrudBundle\Command\DeleteAssociationCommand;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Command\UpdateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
@@ -20,11 +22,13 @@ use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use function Symfony\Component\String\u;
 
 class CrudService
 {
@@ -35,6 +39,7 @@ class CrudService
     private DenormalizerInterface $objectDenormalizer;
     private MessageBusInterface $messageBus;
     private EntityRepositoryInterface $entityRepository;
+    private PropertyAccessorInterface $propertyAccessor;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -43,7 +48,8 @@ class CrudService
         NormalizerInterface $objectNormalizer,
         DenormalizerInterface $objectDenormalizer,
         MessageBusInterface $messageBus,
-        EntityRepositoryInterface $entityRepository
+        EntityRepositoryInterface $entityRepository,
+        PropertyAccessorInterface $propertyAccessor
     )
     {
         $this->entityManager = $entityManager;
@@ -53,6 +59,7 @@ class CrudService
         $this->objectDenormalizer = $objectDenormalizer;
         $this->messageBus = $messageBus;
         $this->entityRepository = $entityRepository;
+        $this->propertyAccessor = $propertyAccessor;
     }
 
     /**
@@ -132,9 +139,55 @@ class CrudService
         return $entity;
     }
 
+    /**
+     * @throws NotFoundException
+     * @throws ExceptionInterface
+     */
+    //TODO: Create a command for this
+    public function findAssoc(string $entityClassName, string $id, string $assocName): array
+    {
+        $classMetadata = $this->entityManager->getClassMetadata($entityClassName);
+        if (!$classMetadata->hasAssociation($assocName)) {
+            throw new NotFoundException();
+        }
+
+        $entity = $this->entityRepository->find($entityClassName, $id);
+
+        if ($classMetadata->isSingleValuedAssociation($assocName)) {
+            $associatedEntity = $this->propertyAccessor->getValue($entity, $assocName);
+            if (empty($associatedEntity)) {
+                throw new NotFoundException();
+            }
+
+            $data = $this->entityToArray($associatedEntity, 'list');
+        } else {
+            $associatedEntities = $this->propertyAccessor->getValue($entity, $assocName);
+            if (empty($associatedEntities)) {
+                throw new NotFoundException();
+            }
+
+            $data = [];
+            foreach ($associatedEntities as $associatedEntity) {
+                $data[] = $this->entityToArray($associatedEntity, 'list');
+            }
+        }
+
+        return $data;
+    }
+
     public function create(string $entityClassName, array $data): RapidApiCrudEntity
     {
         $command = new CreateEntityCommand($entityClassName, $data);
+        $envelope = $this->messageBus->dispatch($command);
+
+        /** @var HandledStamp $stamp */
+        $stamp = $envelope->last(HandledStamp::class);
+        return $stamp->getResult();
+    }
+
+    public function createAssoc(string $entityClassName, string $id, string $assocName, string $assocId): RapidApiCrudEntity
+    {
+        $command = new CreateAssociationCommand($entityClassName, $id, $assocName, $assocId);
         $envelope = $this->messageBus->dispatch($command);
 
         /** @var HandledStamp $stamp */
@@ -156,5 +209,15 @@ class CrudService
     {
         $command = new DeleteEntityCommand($entityClassName, $id);
         $this->messageBus->dispatch($command);
+    }
+
+    public function deleteAssoc(string $entityClassName, string $id, string $assocName, string $assocId): RapidApiCrudEntity
+    {
+        $command = new DeleteAssociationCommand($entityClassName, $id, $assocName, $assocId);
+        $envelope = $this->messageBus->dispatch($command);
+
+        /** @var HandledStamp $stamp */
+        $stamp = $envelope->last(HandledStamp::class);
+        return $stamp->getResult();
     }
 }
