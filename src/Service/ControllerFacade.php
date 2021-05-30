@@ -194,7 +194,9 @@ class ControllerFacade
             $throwable = $throwable->getPrevious();
         }
 
-        //TODO: throw $throwable when APP_ENV is 'dev'
+        if ($_ENV['APP_ENV'] == 'dev') {
+            throw $throwable;
+        }
 
         if ($throwable instanceof NotFoundException) {
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
