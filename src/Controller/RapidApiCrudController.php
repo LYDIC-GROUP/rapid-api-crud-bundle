@@ -13,12 +13,12 @@ use Symfony\Component\Routing\Annotation\Route;
 
 abstract class RapidApiCrudController extends AbstractController
 {
-    private ControllerFacade $crudFacade;
+    private ControllerFacade $controllerFacade;
     private RapidApiContextProvider $contextProvider;
 
     public function __construct(ControllerFacade $crudControllerService, RapidApiContextProvider $contextProvider)
     {
-        $this->crudFacade = $crudControllerService;
+        $this->controllerFacade = $crudControllerService;
         $this->contextProvider = $contextProvider;
     }
 
@@ -34,7 +34,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function list(): JsonResponse
     {
-        return $this->crudFacade->list($this->contextProvider->getContext());
+        return $this->controllerFacade->list($this->contextProvider->getContext());
     }
 
     /**
@@ -42,7 +42,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function find(string $id): JsonResponse
     {
-        return $this->crudFacade->find($this->contextProvider->getContext(), $id);
+        return $this->controllerFacade->find($this->contextProvider->getContext(), $id);
     }
 
     /**
@@ -50,7 +50,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function findAssoc(string $id, string $assocName): JsonResponse
     {
-        return $this->crudFacade->findAssoc($this->contextProvider->getContext(), $id, $assocName);
+        return $this->controllerFacade->findAssoc($this->contextProvider->getContext(), $id, $assocName);
     }
 
     /**
@@ -58,7 +58,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function create(): JsonResponse
     {
-        return $this->crudFacade->create($this->contextProvider->getContext());
+        return $this->controllerFacade->create($this->contextProvider->getContext());
     }
 
     /**
@@ -66,7 +66,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function createAssoc(string $id, string $assocName, string $assocId): JsonResponse
     {
-        return $this->crudFacade->createAssoc($this->contextProvider->getContext(), $id, $assocName, $assocId);
+        return $this->controllerFacade->createAssoc($this->contextProvider->getContext(), $id, $assocName, $assocId);
     }
 
     /**
@@ -74,7 +74,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function update(string $id): JsonResponse
     {
-        return $this->crudFacade->update($this->contextProvider->getContext(), $id);
+        return $this->controllerFacade->update($this->contextProvider->getContext(), $id);
     }
 
     /**
@@ -82,7 +82,7 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function delete(string $id): Response
     {
-        return $this->crudFacade->delete($this->contextProvider->getContext(), $id);
+        return $this->controllerFacade->delete($this->contextProvider->getContext(), $id);
     }
 
     /**
@@ -90,6 +90,6 @@ abstract class RapidApiCrudController extends AbstractController
      */
     public function deleteAssoc(string $id, string $assocName, string $assocId): Response
     {
-        return $this->crudFacade->deleteAssoc($this->contextProvider->getContext(), $id, $assocName, $assocId);
+        return $this->controllerFacade->deleteAssoc($this->contextProvider->getContext(), $id, $assocName, $assocId);
     }
 }
