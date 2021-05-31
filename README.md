@@ -9,16 +9,16 @@ This software enables rapid and flexible Symfony API CRUD development.
 
 Created endpoints by extending RapidApiCrudController:
 
-| Action                  | HTTP Method | Example URL               | HTTP Response code   | HTTP Response body                                                                                 | Notes                                                               |
-|-------------------------|-------------|---------------------------|----------------------|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| Create an entity        | POST        | /users                    | 201                  | Created entity (detail)                                                                            |                                                                     |
-| List all entities  (*)  | GET         | /users                    | 200                  | Array of entities (detail)                                                                         |                                                                     |
-| Find one entity         | GET         | /users/1                  | 200                  | Entity (detail)                                                                                    |                                                                     |
-| Update an entity        | PUT         | /users/1                  | 200                  | Updated entity (detail)                                                                            |                                                                     |
-| Delete an entity        | DELETE      | /users/1                  | 204                  | -                                                                                                  |                                                                     |
-| Find association   (**) | GET         | /users/1/best-friends     | 200                  | ToOne: A single associated entity (detail) <br />ToMany: An array of associated entities (detail)  |                                                                     |
-| Create association (**) | POST        | /users/1/best-friends/2   | 204                  | Entity (detail)                                                                                    | This creates an association between the given user ID and friend ID |
-| Delete association (**) | DELETE      | /users/1/best-friends/2   | 204                  | -                                                                                                  | This removes an association between the given user ID and friend ID |
+| Action                  | HTTP Method | Example URL               | HTTP Response code   | HTTP Response body                                                                                 |
+|-------------------------|-------------|---------------------------|----------------------|----------------------------------------------------------------------------------------------------|
+| Create an entity        | POST        | /users                    | 201                  | Created entity (detail)                                                                            |
+| List all entities  (*)  | GET         | /users                    | 200                  | Array of entities (detail)                                                                         |
+| Find one entity         | GET         | /users/1                  | 200                  | Entity (detail)                                                                                    |
+| Update an entity        | PUT         | /users/1                  | 200                  | Updated entity (detail)                                                                            |
+| Delete an entity        | DELETE      | /users/1                  | 204                  | -                                                                                                  |
+| Find association   (**) | GET         | /users/1/best-friends     | 200                  | ToOne: A single associated entity (detail) <br />ToMany: An array of associated entities (detail)  |
+| Create association (**) | POST        | /users/1/best-friends/2   | 204                  | Entity (detail)                                                                                    |
+| Delete association (**) | DELETE      | /users/1/best-friends/2   | 204                  | -                                                                                                  |
 
 
 (*) These endpoints accepts some query parameters.
