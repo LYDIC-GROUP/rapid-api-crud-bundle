@@ -145,8 +145,6 @@ class CrudService
     }
 
     /**
-     * @throws NotFoundException
-     * @throws ExceptionInterface
      * @return RapidApiCrudEntity|array
      */
     public function findAssoc(string $entityClassName, string $id, string $assocName)

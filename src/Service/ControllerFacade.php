@@ -142,7 +142,7 @@ class ControllerFacade
 
         try {
             $entity = $this->crudService->create($context->getEntityClassName(), $context->getRequest()->toArray());
-            return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => SerializerGroups::DETAIL]);
+            return $this->json( $entity, Response::HTTP_CREATED, [],  ['groups' => SerializerGroups::DETAIL]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -157,7 +157,7 @@ class ControllerFacade
         try {
             $assocName = $this->paramToAssocName($assocName);
             $entity = $this->crudService->createAssoc($context->getEntityClassName(), $id, $assocName, $assocId);
-            return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => SerializerGroups::DETAIL]);
+            return $this->json( $entity, Response::HTTP_CREATED, [],  ['groups' => SerializerGroups::DETAIL]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
