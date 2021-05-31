@@ -17,7 +17,7 @@ Created endpoints by extending RapidApiCrudController:
 | Update an entity        | PUT         | /users/1                  | 200                  | Updated entity (detail)                                                                            |
 | Delete an entity        | DELETE      | /users/1                  | 204                  | -                                                                                                  |
 | Find association   (**) | GET         | /users/1/best-friends     | 200                  | ToOne: A single associated entity (detail) <br />ToMany: An array of associated entities (detail)  |
-| Create association (**) | POST        | /users/1/best-friends/2   | 204                  | Entity (detail)                                                                                    |
+| Create association (**) | POST        | /users/1/best-friends/2   | 201                  | Entity (detail)                                                                                    |
 | Delete association (**) | DELETE      | /users/1/best-friends/2   | 204                  | -                                                                                                  |
 
 
