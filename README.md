@@ -29,6 +29,7 @@ Based on the filterMode you can either filter by property: `/users?name=Steve`
 Or filter with a more complex query: `/users?filter=name:eq:Steve OR age:gt:21`
 You can also add sorting to your result: `/users?sort=age ASC` 
 You can also add paging queries: `/users?page=1&limit=10`
+Associated entities are normalized to ID's by default for performance reasons. If you want to include the entire entity you can use a comma separated query param like so: `?include=bestFriends`.
 
 ## How to use
 
