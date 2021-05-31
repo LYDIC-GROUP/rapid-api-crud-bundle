@@ -87,7 +87,8 @@ class ControllerFacade
                     'Paging-limit' => $paginator->getQuery()->getMaxResults()
                 ],
                 [
-                    'groups' => SerializerGroups::LIST
+                    'groups' => SerializerGroups::LIST,
+                    'include' => $context->getRequest()->get('include')
                 ]
             );
         } catch (\Throwable $throwable) {
@@ -103,7 +104,10 @@ class ControllerFacade
 
         try {
             $entity = $this->crudService->find($context->getEntityClassName(), $id);
-            return $this->json($entity, Response::HTTP_OK, [], ['groups' => SerializerGroups::DETAIL]);
+            return $this->json($entity, Response::HTTP_OK, [], [
+                'groups' => SerializerGroups::DETAIL,
+                'include' => $context->getRequest()->get('include')
+            ]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -120,12 +124,15 @@ class ControllerFacade
             $associationData = $this->crudService->findAssoc($context->getEntityClassName(), $id, $assocName);
 
             if (!is_array($associationData)) {
-                return $this->json($associationData, Response::HTTP_OK, [],['groups' => SerializerGroups::DETAIL]);
+                return $this->json($associationData, Response::HTTP_OK, [],[
+                    'groups' => SerializerGroups::DETAIL,
+                    'include' => $context->getRequest()->get('include')
+                ]);
             }
 
             $data = [];
             foreach ($associationData as $associatedEntity) {
-                $data[] = $this->crudService->entityToArray($associatedEntity, SerializerGroups::LIST);
+                $data[] = $this->crudService->entityToArray($associatedEntity, SerializerGroups::LIST, $context->getRequest()->get('include'));
             }
 
             return $this->json($data, Response::HTTP_OK);

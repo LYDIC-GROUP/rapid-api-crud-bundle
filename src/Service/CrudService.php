@@ -83,9 +83,9 @@ class CrudService
     /**
      * @throws ExceptionInterface
      */
-    public function entityToArray(RapidApiCrudEntity $entity, string $group = SerializerGroups::DETAIL): array
+    public function entityToArray(RapidApiCrudEntity $entity, string $group = SerializerGroups::DETAIL, ?string $include = null): array
     {
-        return $this->objectNormalizer->normalize($entity, null, ['groups' => [$group]]);
+        return $this->objectNormalizer->normalize($entity, null, ['groups' => [$group], 'include' => $include]);
     }
 
     /**

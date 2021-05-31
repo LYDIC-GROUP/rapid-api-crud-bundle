@@ -6,6 +6,7 @@ namespace LydicGroup\RapidApiCrudBundle\Serializer;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
@@ -29,25 +30,39 @@ class Normalizer extends Serializer implements NormalizerInterface
         return current($this->classMetadata($className)->getIdentifier());
     }
 
-    private function normalizedAssociationFields(object $object): array
+    /**
+     * @throws ExceptionInterface
+     */
+    private function normalizedAssociationFields(object $object, array $context): array
     {
+        $assocFieldsToNormalizeToEntity = $this->assocFieldsToNormalizeToEntity($context);
+
         $className = get_class($object);
         $classMetadata = $this->classMetadata($className);
 
         $output = [];
-
         foreach ($classMetadata->getAssociationNames() as $fieldName) {
             $associatedClassName = $this->assocTargetClass($className, $fieldName);
             $associatedClassIdFieldName = $this->entityIdFieldName($associatedClassName);
 
-            $normalizedValue = null;
+            $normalizeToEntity = in_array($fieldName, $assocFieldsToNormalizeToEntity);
 
+            $normalizedValue = null;
             if ($classMetadata->isSingleValuedAssociation($fieldName)) {
-                $normalizedValue = $this->propertyAccessor->getValue($object, $fieldName . '.' . $associatedClassIdFieldName);
+                if ($normalizeToEntity) {
+                    $associatedEntity = $this->propertyAccessor->getValue($object, $fieldName);
+                    $normalizedValue = $this->normalize($associatedEntity, null, ['groups' => $context['groups']]);
+                } else {
+                    $normalizedValue = $this->propertyAccessor->getValue($object, $fieldName . '.' . $associatedClassIdFieldName);
+                }
             } elseif ($classMetadata->isCollectionValuedAssociation($fieldName)) {
                 $normalizedValue = [];
                 foreach ($this->propertyAccessor->getValue($object, $fieldName) as $associatedEntity) {
-                    $normalizedValue[] = $this->propertyAccessor->getValue($associatedEntity, $associatedClassIdFieldName);
+                    if ($normalizeToEntity) {
+                        $normalizedValue[] = $this->normalize($associatedEntity, null, ['groups' => $context['groups']]);
+                    } else {
+                        $normalizedValue[] = $this->propertyAccessor->getValue($associatedEntity, $associatedClassIdFieldName);
+                    }
                 }
             } else {
                 continue;
@@ -59,9 +74,19 @@ class Normalizer extends Serializer implements NormalizerInterface
         return $output;
     }
 
+
+    private function assocFieldsToNormalizeToEntity(array $context): array
+    {
+        if (empty($context['include'])) {
+            return [];
+        }
+
+        return explode(',', $context['include']);
+    }
+
     public function normalize($object, string $format = null, array $context = [])
     {
-        $normalizedAssociations = $this->normalizedAssociationFields($object);
+        $normalizedAssociations = $this->normalizedAssociationFields($object, $context);
         $context[AbstractNormalizer::IGNORED_ATTRIBUTES] = array_keys($normalizedAssociations);
         $data = $this->normalizer->normalize($object, $format, $context);
         return array_merge($data, $normalizedAssociations);
