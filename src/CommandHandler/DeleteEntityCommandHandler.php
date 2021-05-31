@@ -6,7 +6,6 @@ namespace LydicGroup\RapidApiCrudBundle\CommandHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
 use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
-use LydicGroup\RapidApiCrudBundle\Service\CrudService;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
 use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 

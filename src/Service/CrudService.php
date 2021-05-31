@@ -9,15 +9,16 @@ use LydicGroup\RapidApiCrudBundle\Command\CreateAssociationCommand;
 use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteAssociationCommand;
 use LydicGroup\RapidApiCrudBundle\Command\DeleteEntityCommand;
+use LydicGroup\RapidApiCrudBundle\Command\FindAssociationCommand;
+use LydicGroup\RapidApiCrudBundle\Command\FindEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Command\UpdateEntityCommand;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
+use LydicGroup\RapidApiCrudBundle\Enum\SerializerGroups;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\ObjectRepository;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiCriteriaInterface;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiSortInterface;
-use LydicGroup\RapidApiCrudBundle\Repository\EntityRepository;
 use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -28,7 +29,6 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use function Symfony\Component\String\u;
 
 class CrudService
 {
@@ -83,7 +83,7 @@ class CrudService
     /**
      * @throws ExceptionInterface
      */
-    public function entityToArray(RapidApiCrudEntity $entity, string $group = 'find'): array
+    public function entityToArray(RapidApiCrudEntity $entity, string $group = SerializerGroups::DETAIL): array
     {
         return $this->objectNormalizer->normalize($entity, null, ['groups' => [$group]]);
     }
@@ -119,9 +119,6 @@ class CrudService
         return $this->crudCriteriaBuilder->build($entityClassName, $request);
     }
 
-    /**
-     * @throws ExceptionInterface
-     */
     public function list(string $className, int $page , int $limit, RapidApiCriteriaInterface $criteria, RapidApiSortInterface $sorter): Paginator
     {
         $queryBuilder = $this->entityRepository->getQueryBuilder($className);
@@ -138,54 +135,27 @@ class CrudService
         return new Paginator($queryBuilder);
     }
 
-    /**
-     * @throws ExceptionInterface
-     * @throws NotFoundException
-     */
     public function find(string $entityClassName, string $id): RapidApiCrudEntity
     {
-        $entity = $this->entityRepository->find($entityClassName, $id);
-        if (!$entity instanceof RapidApiCrudEntity) {
-            throw new NotFoundException();
-        }
+        $command = new FindEntityCommand($entityClassName, $id);
+        $envelope = $this->messageBus->dispatch($command);
 
-        return $entity;
+        $stamp = $envelope->last(HandledStamp::class);
+        return $stamp->getResult();
     }
 
     /**
      * @throws NotFoundException
      * @throws ExceptionInterface
+     * @return RapidApiCrudEntity|array
      */
-    //TODO: Create a command for this
-    public function findAssoc(string $entityClassName, string $id, string $assocName): array
+    public function findAssoc(string $entityClassName, string $id, string $assocName)
     {
-        $classMetadata = $this->entityManager->getClassMetadata($entityClassName);
-        if (!$classMetadata->hasAssociation($assocName)) {
-            throw new NotFoundException();
-        }
+        $command = new FindAssociationCommand($entityClassName, $id, $assocName);
+        $envelope = $this->messageBus->dispatch($command);
 
-        $entity = $this->entityRepository->find($entityClassName, $id);
-
-        if ($classMetadata->isSingleValuedAssociation($assocName)) {
-            $associatedEntity = $this->propertyAccessor->getValue($entity, $assocName);
-            if (empty($associatedEntity)) {
-                throw new NotFoundException();
-            }
-
-            $data = $this->entityToArray($associatedEntity, 'list');
-        } else {
-            $associatedEntities = $this->propertyAccessor->getValue($entity, $assocName);
-            if (empty($associatedEntities)) {
-                throw new NotFoundException();
-            }
-
-            $data = [];
-            foreach ($associatedEntities as $associatedEntity) {
-                $data[] = $this->entityToArray($associatedEntity, 'list');
-            }
-        }
-
-        return $data;
+        $stamp = $envelope->last(HandledStamp::class);
+        return $stamp->getResult();
     }
 
     public function create(string $entityClassName, array $data): RapidApiCrudEntity
@@ -227,10 +197,6 @@ class CrudService
     public function deleteAssoc(string $entityClassName, string $id, string $assocName, string $assocId): RapidApiCrudEntity
     {
         $command = new DeleteAssociationCommand($entityClassName, $id, $assocName, $assocId);
-        $envelope = $this->messageBus->dispatch($command);
-
-        /** @var HandledStamp $stamp */
-        $stamp = $envelope->last(HandledStamp::class);
-        return $stamp->getResult();
+        $this->messageBus->dispatch($command);
     }
 }

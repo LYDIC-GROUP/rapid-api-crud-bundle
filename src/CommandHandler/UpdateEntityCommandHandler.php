@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace LydicGroup\RapidApiCrudBundle\CommandHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\Entity;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
+use LydicGroup\RapidApiCrudBundle\Enum\SerializerGroups;
 use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
 use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
 use LydicGroup\RapidApiCrudBundle\Service\CrudService;
@@ -36,7 +36,7 @@ class UpdateEntityCommandHandler implements MessageHandlerInterface
         $data = $command->data;
 
         $entity = $this->entityRepository->find($command->className, $command->id);
-        $entity = $this->crudService->arrayToEntity($data, $command->className, 'update', $entity);
+        $entity = $this->crudService->arrayToEntity($data, $command->className, SerializerGroups::UPDATE, $entity);
 
         $this->crudService->validate($entity);
 

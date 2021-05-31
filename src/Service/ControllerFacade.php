@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace LydicGroup\RapidApiCrudBundle\Service;
 
+use LydicGroup\RapidApiCrudBundle\Enum\SerializerGroups;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
 use LydicGroup\RapidApiCrudBundle\Factory\CriteriaFactory;
@@ -15,6 +16,14 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use function Symfony\Component\String\u;
 
+/**
+ * Class ControllerFacade
+ * @package LydicGroup\RapidApiCrudBundle\Service
+ *
+ * This class acts as a gateway and it should contain everything regarding:
+ * - Requests (e.g. reading/manipulating input data)
+ * - Responses (e.g. serializing output data, defining the correct response/HTTP status code)
+ */
 class ControllerFacade
 {
     protected CrudService $crudService;
@@ -78,7 +87,7 @@ class ControllerFacade
                     'Paging-limit' => $paginator->getQuery()->getMaxResults()
                 ],
                 [
-                    'groups' => 'list'
+                    'groups' => SerializerGroups::LIST
                 ]
             );
         } catch (\Throwable $throwable) {
@@ -94,7 +103,7 @@ class ControllerFacade
 
         try {
             $entity = $this->crudService->find($context->getEntityClassName(), $id);
-            return $this->json($entity, Response::HTTP_OK, [], ['groups' => 'detail']);
+            return $this->json($entity, Response::HTTP_OK, [], ['groups' => SerializerGroups::DETAIL]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -108,8 +117,18 @@ class ControllerFacade
 
         try {
             $assocName = $this->paramToAssocName($assocName);
-            $assocData = $this->crudService->findAssoc($context->getEntityClassName(), $id, $assocName);
-            return $this->json($assocData, Response::HTTP_OK, [], ['groups' => 'detail']);
+            $associationData = $this->crudService->findAssoc($context->getEntityClassName(), $id, $assocName);
+
+            if (!is_array($associationData)) {
+                return $this->json($associationData, Response::HTTP_OK, [],['groups' => SerializerGroups::DETAIL]);
+            }
+
+            $data = [];
+            foreach ($associationData as $associatedEntity) {
+                $data[] = $this->crudService->entityToArray($associatedEntity, SerializerGroups::LIST);
+            }
+
+            return $this->json($data, Response::HTTP_OK);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -123,7 +142,7 @@ class ControllerFacade
 
         try {
             $entity = $this->crudService->create($context->getEntityClassName(), $context->getRequest()->toArray());
-            return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => 'detail']);
+            return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => SerializerGroups::DETAIL]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -138,7 +157,7 @@ class ControllerFacade
         try {
             $assocName = $this->paramToAssocName($assocName);
             $entity = $this->crudService->createAssoc($context->getEntityClassName(), $id, $assocName, $assocId);
-            return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => 'detail']);
+            return $this->json( $entity, Response::HTTP_OK, [],  ['groups' => SerializerGroups::DETAIL]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -152,7 +171,7 @@ class ControllerFacade
 
         try {
             $entity = $this->crudService->update($context->getEntityClassName(), $id, $context->getRequest()->toArray());
-            return $this->json($entity, Response::HTTP_OK, [], ['groups' => 'detail']);
+            return $this->json($entity, Response::HTTP_OK, [], ['groups' => SerializerGroups::DETAIL]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }

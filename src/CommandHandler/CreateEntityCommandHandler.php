@@ -5,6 +5,7 @@ namespace LydicGroup\RapidApiCrudBundle\CommandHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
+use LydicGroup\RapidApiCrudBundle\Enum\SerializerGroups;
 use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
 use LydicGroup\RapidApiCrudBundle\Service\CrudService;
 use LydicGroup\RapidApiCrudBundle\Command\CreateEntityCommand;
@@ -31,7 +32,7 @@ class CreateEntityCommandHandler implements MessageHandlerInterface
     {
         $data = $command->data;
 
-        $entity = $this->crudService->arrayToEntity($data, $command->className, 'create');
+        $entity = $this->crudService->arrayToEntity($data, $command->className, SerializerGroups::CREATE);
 
         $this->crudService->validate($entity);
 
