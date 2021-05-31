@@ -7,7 +7,9 @@ This software enables rapid and flexible Symfony API CRUD development.
 - Ex-/Includes specific properties from output by using the @Groups annotation (e.g. exclude $id from 'detail', but not from 'list')
 - Association fields (relations to other entities) will be normalized to the ID of the entity and vice versa.
 
-Created endpoints by extending RapidApiCrudController:
+### Endpoints
+
+When you extend the RapidApiCrudController, these endpoints will become accessible automagically:
 
 | Action                  | HTTP Method | Example URL               | HTTP Response code   | HTTP Response body                                                                                 |
 |-------------------------|-------------|---------------------------|----------------------|----------------------------------------------------------------------------------------------------|
@@ -20,16 +22,25 @@ Created endpoints by extending RapidApiCrudController:
 | Create association (**) | POST        | /users/1/best-friends/2   | 201                  | Entity (detail)                                                                                    |
 | Delete association (**) | DELETE      | /users/1/best-friends/2   | 204                  | -                                                                                                  |
 
-
 (*) These endpoints accepts some query parameters.
 
 (\*\*) These endpoints work for ToOne and ToMany associations. `best-friends` is the name of the association on the User model: `$bestFriends`.
 
-Based on the filterMode you can either filter by property: `/users?name=Steve`
-Or filter with a more complex query: `/users?filter=name:eq:Steve OR age:gt:21`
-You can also add sorting to your result: `/users?sort=age ASC` 
+### Filtering
+
+Based on the filterMode you can either filter by property: `/users?name=Steve`<br />
+Or filter with a more complex query: `/users?filter=name:eq:Steve OR age:gt:21`<br />
+You can also add sorting to your result: `/users?sort=age ASC`<br />
 You can also add paging queries: `/users?page=1&limit=10`
-Associated entities are normalized to ID's by default for performance reasons. If you want to include the entire entity you can use a comma separated query param like so: `?include=bestFriends`.
+
+### Associated entities
+
+Associated entities are normalized to their ID by default for performance reasons.<br />
+If you want to include the entire entity you can use a query param with (comma separated) association names. For example:<br />
+On the list endpoint: `/users?include=bestFriends`<br />
+On the detail endpoint: `/users/1?include=bestFriends`<br />
+On an assocation endpoint: `/users/1/best-friends?include=car`<br />
+This will only go 1 deep.
 
 ## How to use
 
