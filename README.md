@@ -4,7 +4,7 @@ This software enables rapid and flexible Symfony API CRUD development.
 ## What it does
 - Creates an endpoint for CRUD actions on a given entity (configurable)
 - Validates the entity by using the annotations in the class
-- Ex-/Includes specific properties from output by using the @Groups annotation (e.g. exclude $id from 'find', but not from 'list')
+- Ex-/Includes specific properties from output by using the @Groups annotation (e.g. exclude $id from 'detail', but not from 'list')
 - Association fields (relations to other entities) will be normalized to the ID of the entity and vice versa.
 
 Created endpoints by extending RapidApiCrudController:
