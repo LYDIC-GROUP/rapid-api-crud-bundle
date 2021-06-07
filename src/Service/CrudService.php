@@ -192,7 +192,7 @@ class CrudService
         $this->messageBus->dispatch($command);
     }
 
-    public function deleteAssoc(string $entityClassName, string $id, string $assocName, string $assocId): RapidApiCrudEntity
+    public function deleteAssoc(string $entityClassName, string $id, string $assocName, string $assocId): void
     {
         $command = new DeleteAssociationCommand($entityClassName, $id, $assocName, $assocId);
         $this->messageBus->dispatch($command);
