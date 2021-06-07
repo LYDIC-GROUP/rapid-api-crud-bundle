@@ -5,6 +5,8 @@ namespace LydicGroup\RapidApiCrudBundle\Serializer;
 
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\PropertyAccess\Exception\UnexpectedTypeException;
+use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
@@ -17,10 +19,11 @@ class Normalizer extends Serializer implements NormalizerInterface
 
     public function __construct(
         ObjectNormalizer $normalizer,
-        EntityManagerInterface $entityManager,
-        PropertyAccessorInterface $propertyAccessor
+        EntityManagerInterface $entityManager
     )
     {
+        $propertyAccessor = PropertyAccess::createPropertyAccessor();
+
         parent::__construct($entityManager, $propertyAccessor);
         $this->normalizer = $normalizer;
     }
@@ -47,25 +50,30 @@ class Normalizer extends Serializer implements NormalizerInterface
 
             $normalizeToEntity = in_array($fieldName, $assocFieldsToNormalizeToEntity);
 
-            $normalizedValue = null;
-            if ($classMetadata->isSingleValuedAssociation($fieldName)) {
-                if ($normalizeToEntity) {
-                    $associatedEntity = $this->propertyAccessor->getValue($object, $fieldName);
-                    $normalizedValue = $this->normalize($associatedEntity, null, ['groups' => $context['groups']]);
-                } else {
-                    $normalizedValue = $this->propertyAccessor->getValue($object, $fieldName . '.' . $associatedClassIdFieldName);
-                }
-            } elseif ($classMetadata->isCollectionValuedAssociation($fieldName)) {
-                $normalizedValue = [];
-                foreach ($this->propertyAccessor->getValue($object, $fieldName) as $associatedEntity) {
+            try {
+                $normalizedValue = null;
+                if ($classMetadata->isSingleValuedAssociation($fieldName)) {
                     if ($normalizeToEntity) {
-                        $normalizedValue[] = $this->normalize($associatedEntity, null, ['groups' => $context['groups']]);
+                        $associatedEntity = $this->propertyAccessor->getValue($object, $fieldName);
+                        $normalizedValue = $this->normalize($associatedEntity, null, ['groups' => $context['groups']]);
                     } else {
-                        $normalizedValue[] = $this->propertyAccessor->getValue($associatedEntity, $associatedClassIdFieldName);
+                        $normalizedValue = $this->propertyAccessor->getValue($object, $fieldName . '.' . $associatedClassIdFieldName);
                     }
+                } elseif ($classMetadata->isCollectionValuedAssociation($fieldName)) {
+                    $normalizedValue = [];
+                    foreach ($this->propertyAccessor->getValue($object, $fieldName) as $associatedEntity) {
+                        if ($normalizeToEntity) {
+                            $normalizedValue[] = $this->normalize($associatedEntity, null, ['groups' => $context['groups']]);
+                        } else {
+                            $normalizedValue[] = $this->propertyAccessor->getValue($associatedEntity, $associatedClassIdFieldName);
+                        }
+                    }
+                } else {
+                    $output[$fieldName] = null;
                 }
-            } else {
-                continue;
+            } catch (UnexpectedTypeException $ex) {
+                //The value is probably null
+                $output[$fieldName] = null;
             }
 
             $output[$fieldName] = $normalizedValue;
