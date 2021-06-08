@@ -92,8 +92,12 @@ class Normalizer extends Serializer implements NormalizerInterface
         return explode(',', $context['include']);
     }
 
-    public function normalize($object, string $format = null, array $context = [])
+    public function normalize($object, string $format = null, array $context = []): ?array
     {
+        if (is_null($object)) {
+            return null;
+        }
+
         $normalizedAssociations = $this->normalizedAssociationFields($object, $context);
         $context[AbstractNormalizer::IGNORED_ATTRIBUTES] = array_keys($normalizedAssociations);
         $data = $this->normalizer->normalize($object, $format, $context);
