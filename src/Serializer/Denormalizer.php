@@ -6,6 +6,7 @@ namespace LydicGroup\RapidApiCrudBundle\Serializer;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
@@ -70,6 +71,6 @@ class Denormalizer extends Serializer implements DenormalizerInterface
 
     public function supportsDenormalization($data, string $type, string $format = null): bool
     {
-        return $data instanceof RapidApiCrudEntity;
+        return in_array(RapidApiCrudEntity::class, class_implements($type));
     }
 }
