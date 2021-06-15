@@ -8,6 +8,7 @@
 namespace LydicGroup\RapidApiCrudBundle\Repository;
 
 use Doctrine\ORM\QueryBuilder;
+use http\QueryString;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 
 /**
@@ -17,6 +18,8 @@ use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 interface EntityRepositoryInterface
 {
     public function getQueryBuilder(string $class): QueryBuilder;
+
+    public function getQueryBuilderAssoc(string $assocClass, string $mappedBy, string $id): QueryBuilder;
 
     public function find(string $class, $id): RapidApiCrudEntity;
 

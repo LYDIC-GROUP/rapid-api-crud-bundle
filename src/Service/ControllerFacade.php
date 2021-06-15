@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace LydicGroup\RapidApiCrudBundle\Service;
 
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use LydicGroup\RapidApiCrudBundle\Enum\SerializerGroups;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
@@ -70,8 +71,8 @@ class ControllerFacade
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
-        $page = (int) $context->getRequest()->query->get('page', 1);
-        $limit = (int) $context->getRequest()->query->get('limit', 10);
+        $page = (int)$context->getRequest()->query->get('page', 1);
+        $limit = (int)$context->getRequest()->query->get('limit', 10);
 
         try {
             $criteria = $this->criteriaFactory->create($context);
@@ -123,19 +124,29 @@ class ControllerFacade
             $assocName = $this->paramToAssocName($assocName);
             $associationData = $this->crudService->findAssoc($context->getEntityClassName(), $id, $assocName);
 
-            if (!is_array($associationData)) {
-                return $this->json($associationData, Response::HTTP_OK, [],[
+            //TODO: This is a duplicate line of code which is used to set the page header.
+            $page = (int)$context->getRequest()->query->get('page', 1);
+
+            if ($associationData instanceof Paginator) {
+                return $this->json(
+                    $associationData->getIterator(),
+                    Response::HTTP_OK,
+                    [
+                        'Paging-rows' => $associationData->count(),
+                        'Paging-page' => $page,
+                        'Paging-limit' => $associationData->getQuery()->getMaxResults()
+                    ],
+                    [
+                        'groups' => SerializerGroups::LIST,
+                        'include' => $context->getRequest()->get('include')
+                    ]
+                );
+            } else {
+                return $this->json($associationData, Response::HTTP_OK, [], [
                     'groups' => SerializerGroups::DETAIL,
                     'include' => $context->getRequest()->get('include')
                 ]);
             }
-
-            $data = [];
-            foreach ($associationData as $associatedEntity) {
-                $data[] = $this->crudService->entityToArray($associatedEntity, SerializerGroups::LIST, $context->getRequest()->get('include'));
-            }
-
-            return $this->json($data, Response::HTTP_OK);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -149,7 +160,7 @@ class ControllerFacade
 
         try {
             $entity = $this->crudService->create($context->getEntityClassName(), $context->getRequest()->toArray());
-            return $this->json( $entity, Response::HTTP_CREATED, [],  ['groups' => SerializerGroups::DETAIL]);
+            return $this->json($entity, Response::HTTP_CREATED, [], ['groups' => SerializerGroups::DETAIL]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }
@@ -164,7 +175,7 @@ class ControllerFacade
         try {
             $assocName = $this->paramToAssocName($assocName);
             $entity = $this->crudService->createAssoc($context->getEntityClassName(), $id, $assocName, $assocId);
-            return $this->json( $entity, Response::HTTP_CREATED, [],  ['groups' => SerializerGroups::DETAIL]);
+            return $this->json($entity, Response::HTTP_CREATED, [], ['groups' => SerializerGroups::DETAIL]);
         } catch (\Throwable $throwable) {
             return $this->badResponse($throwable);
         }

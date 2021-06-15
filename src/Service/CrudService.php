@@ -145,11 +145,11 @@ class CrudService
     }
 
     /**
-     * @return RapidApiCrudEntity|array
+     * @return RapidApiCrudEntity|Paginator
      */
     public function findAssoc(string $entityClassName, string $id, string $assocName)
     {
-        $command = new FindAssociationCommand($entityClassName, $id, $assocName);
+        $command = new FindAssociationCommand($entityClassName, $id, $assocName );
         $envelope = $this->messageBus->dispatch($command);
 
         $stamp = $envelope->last(HandledStamp::class);

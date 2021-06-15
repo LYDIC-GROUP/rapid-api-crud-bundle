@@ -43,6 +43,20 @@ class EntityRepository implements EntityRepositoryInterface
         return $queryBuilder;
     }
 
+    public function getQueryBuilderAssoc(string $assocClass, string $mappedBy, string $id): QueryBuilder
+    {
+        $entityManager = $this->doctrine->getManagerForClass($assocClass);
+
+        /** @var QueryBuilder $queryBuilder */
+        $queryBuilder = $entityManager->createQueryBuilder()
+            ->select('entity')
+            ->from($assocClass, 'entity')
+            ->where(sprintf('entity.%s = :id', $mappedBy))
+            ->setParameter(':id', $id);
+
+        return $queryBuilder;
+    }
+
     public function find(string $class, $id): RapidApiCrudEntity
     {
         $entityManager = $this->doctrine->getManagerForClass($class);
