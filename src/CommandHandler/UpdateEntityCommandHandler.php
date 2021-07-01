@@ -7,6 +7,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use LydicGroup\RapidApiCrudBundle\Enum\SerializerGroups;
 use LydicGroup\RapidApiCrudBundle\Exception\RapidApiCrudException;
+use LydicGroup\RapidApiCrudBundle\Factory\EntityRepositoryFactory;
 use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
 use LydicGroup\RapidApiCrudBundle\Service\CrudService;
 use LydicGroup\RapidApiCrudBundle\Command\UpdateEntityCommand;
@@ -18,13 +19,13 @@ class UpdateEntityCommandHandler implements MessageHandlerInterface
 {
     private EntityManagerInterface $entityManager;
     private CrudService $crudService;
-    private EntityRepositoryInterface $entityRepository;
+    private EntityRepositoryFactory $entityRepositoryFactory;
 
-    public function __construct(EntityManagerInterface $entityManager, CrudService $crudService, EntityRepositoryInterface $entityRepository)
+    public function __construct(EntityManagerInterface $entityManager, CrudService $crudService, EntityRepositoryFactory $entityRepositoryFactory)
     {
         $this->entityManager = $entityManager;
         $this->crudService = $crudService;
-        $this->entityRepository = $entityRepository;
+        $this->entityRepositoryFactory = $entityRepositoryFactory;
     }
 
     /**
@@ -33,9 +34,10 @@ class UpdateEntityCommandHandler implements MessageHandlerInterface
      */
     public function __invoke(UpdateEntityCommand $command): RapidApiCrudEntity
     {
+        $entityRepository = $this->entityRepositoryFactory->createEntityRepository();
         $data = $command->data;
 
-        $entity = $this->entityRepository->find($command->className, $command->id);
+        $entity = $entityRepository->find($command->className, $command->id);
         $entity = $this->crudService->arrayToEntity($data, $command->className, SerializerGroups::UPDATE, $entity);
 
         $this->crudService->validate($entity);

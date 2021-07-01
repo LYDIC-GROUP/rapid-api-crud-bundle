@@ -9,6 +9,7 @@ use Doctrine\ORM\Tools\Pagination\Paginator;
 use LydicGroup\RapidApiCrudBundle\Command\FindAssociationCommand;
 use LydicGroup\RapidApiCrudBundle\Entity\RapidApiCrudEntity;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
+use LydicGroup\RapidApiCrudBundle\Factory\EntityRepositoryFactory;
 use LydicGroup\RapidApiCrudBundle\Factory\SortFactory;
 use LydicGroup\RapidApiCrudBundle\Provider\RapidApiContextProvider;
 use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
@@ -22,16 +23,16 @@ class FindAssociationCommandHandler implements MessageHandlerInterface
     private EntityManagerInterface $entityManager;
     private PropertyAccessorInterface $propertyAccessor;
 
-    private EntityRepositoryInterface $entityRepository;
+    private EntityRepositoryFactory $entityRepositoryFactory;
     private RapidApiContextProvider $contextProvider;
     private CriteriaFactory $criteriaFactory;
     private SortFactory $sortFactory;
 
-    public function __construct(EntityManagerInterface $entityManager, PropertyAccessorInterface $propertyAccessor, EntityRepositoryInterface $entityRepository, RapidApiContextProvider $contextProvider, CriteriaFactory $criteriaFactory, SortFactory $sortFactory) {
+    public function __construct(EntityManagerInterface $entityManager, PropertyAccessorInterface $propertyAccessor,  EntityRepositoryFactory $entityRepositoryFactory, RapidApiContextProvider $contextProvider, CriteriaFactory $criteriaFactory, SortFactory $sortFactory) {
         $this->entityManager = $entityManager;
         $this->propertyAccessor = $propertyAccessor;
 
-        $this->entityRepository = $entityRepository;
+        $this->entityRepositoryFactory = $entityRepositoryFactory;
         $this->contextProvider = $contextProvider;
         $this->criteriaFactory = $criteriaFactory;
         $this->sortFactory = $sortFactory;
@@ -39,10 +40,12 @@ class FindAssociationCommandHandler implements MessageHandlerInterface
 
     /**
      * @throws NotFoundException
-     * @return RapidApiCrudEntity|array
+     * @return RapidApiCrudEntity|Paginator
      */
     public function __invoke(FindAssociationCommand $command)
     {
+        $entityRepository = $this->entityRepositoryFactory->createEntityRepository();
+
         $classMetadata = $this->entityManager->getClassMetadata($command->className);
         if (!$classMetadata->hasAssociation($command->associationName)) {
             throw new NotFoundException();
@@ -68,7 +71,7 @@ class FindAssociationCommandHandler implements MessageHandlerInterface
 
             $assocClass = $classMetadata->getAssociationTargetClass($command->associationName);
             $mappedBy = $classMetadata->getAssociationMappedByTargetField($command->associationName);
-            $queryBuilder = $this->entityRepository->getQueryBuilderAssoc($assocClass, $mappedBy, $command->id);
+            $queryBuilder = $entityRepository->getQueryBuilderAssoc($assocClass, $mappedBy, $command->id);
 
             $queryBuilder = $criteria->get($queryBuilder);
             $queryBuilder = $sorter->get($queryBuilder);

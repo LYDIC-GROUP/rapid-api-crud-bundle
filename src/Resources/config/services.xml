@@ -13,6 +13,10 @@
 
         <service id="LydicGroup\RapidApiCrudBundle\Dto\ControllerConfig" shared="false"/>
 
+        <instanceof id="LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface">
+            <tag name="rapid.api.entity.repository"/>
+        </instanceof>
+
         <instanceof id="LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiCriteriaInterface">
             <tag name="rapid.api.criteria"/>
         </instanceof>

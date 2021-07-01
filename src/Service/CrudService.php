@@ -17,6 +17,7 @@ use LydicGroup\RapidApiCrudBundle\Enum\SerializerGroups;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use Doctrine\ORM\EntityManagerInterface;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
+use LydicGroup\RapidApiCrudBundle\Factory\EntityRepositoryFactory;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiCriteriaInterface;
 use LydicGroup\RapidApiCrudBundle\QueryBuilder\RapidApiSortInterface;
 use LydicGroup\RapidApiCrudBundle\Repository\EntityRepositoryInterface;
@@ -38,7 +39,7 @@ class CrudService
     private NormalizerInterface $objectNormalizer;
     private DenormalizerInterface $objectDenormalizer;
     private MessageBusInterface $messageBus;
-    private EntityRepositoryInterface $entityRepository;
+    private EntityRepositoryFactory $entityRepositoryFactory;
     private PropertyAccessorInterface $propertyAccessor;
 
     public function __construct(
@@ -48,7 +49,7 @@ class CrudService
         NormalizerInterface $objectNormalizer,
         DenormalizerInterface $objectDenormalizer,
         MessageBusInterface $messageBus,
-        EntityRepositoryInterface $entityRepository,
+        EntityRepositoryFactory $entityRepositoryFactory,
         PropertyAccessorInterface $propertyAccessor
     )
     {
@@ -58,7 +59,7 @@ class CrudService
         $this->objectNormalizer = $objectNormalizer;
         $this->objectDenormalizer = $objectDenormalizer;
         $this->messageBus = $messageBus;
-        $this->entityRepository = $entityRepository;
+        $this->entityRepositoryFactory = $entityRepositoryFactory;
         $this->propertyAccessor = $propertyAccessor;
     }
 
@@ -121,7 +122,9 @@ class CrudService
 
     public function list(string $className, int $page , int $limit, RapidApiCriteriaInterface $criteria, RapidApiSortInterface $sorter): Paginator
     {
-        $queryBuilder = $this->entityRepository->getQueryBuilder($className);
+        $entityRepository = $this->entityRepositoryFactory->createEntityRepository();
+
+        $queryBuilder = $entityRepository->getQueryBuilder($className);
 
         //Apply filtering
         $queryBuilder = $criteria->get($queryBuilder);
