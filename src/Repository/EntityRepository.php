@@ -19,8 +19,8 @@ use Symfony\Component\Security\Core\Security;
 
 class EntityRepository implements EntityRepositoryInterface
 {
-    private ManagerRegistry $doctrine;
-    private Security $security;
+    protected ManagerRegistry $doctrine;
+    protected Security $security;
 
     /**
      * EntityRepository constructor.
