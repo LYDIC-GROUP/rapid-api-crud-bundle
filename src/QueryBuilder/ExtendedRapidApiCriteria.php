@@ -70,8 +70,8 @@ class ExtendedRapidApiCriteria implements RapidApiCriteriaInterface
         $fst = $this->parser->parse($filter);
         $nodes = $fst->getNodes();
 
-        $expression = $this->getFilterNodeExpression($nodes[0], $queryBuilder);
-        $expression = $this->walker($queryBuilder, $nodes, $expression);
+        //Walk over all nodes
+        $expression = $this->walk($queryBuilder, $nodes);
 
         $this->joinableEntities = array_unique($this->joinableEntities);
         foreach ($this->joinableEntities as $joinableEntity) {
@@ -84,109 +84,88 @@ class ExtendedRapidApiCriteria implements RapidApiCriteriaInterface
     }
 
     /**
-     * @param array $nodes
-     * @param Expression $expression
+     * Walk over every Node in the tree
+     * if we find a filter or operator store them
+     * otherwise recursivly walk over the filter group which contains filtes and operators
+     *
+     * @param $queryBuilder
+     * @param $nodes
+     * @return \Doctrine\ORM\Query\Expr\Andx|\Doctrine\ORM\Query\Expr\Orx|mixed
      */
-    private function walker(QueryBuilder $queryBuilder, array $nodes, $expression = null)
+    public function walk($queryBuilder, $nodes)
     {
-        $currentPos = 1;
-        while ($currentPos <= count($nodes)) {
-            $expression = $this->buildQuery($queryBuilder, $expression, $nodes, $currentPos);
-            $currentPos += 2;
+        $expressions = [];
+        $operators = [];
+        foreach ($nodes as $node) {
+            if ($node instanceof FilterGroup) {
+                $expressions[] = $this->walk($queryBuilder, $node->getNodes());
+            } elseif ($node instanceof Filter) {
+                $expressions[] = $this->getFilterExpression($queryBuilder, $node);
+            } elseif ($node instanceof FilterLogicOperator) {
+                $operators[] = $node->getOperator();
+            }
+        }
+
+        return $this->buildExpression($queryBuilder, $expressions, $operators);
+    }
+
+    protected function getFilterExpression(QueryBuilder $queryBuilder, Filter $node)
+    {
+        $prefix = $this->propertyPrefix;
+        if (strpos($node->getProperty(), '.')) {
+            $prefix = '';
+            $this->joinableEntities[] = explode('.', $node->getProperty())[0];
+        }
+        $parameterName = ':' . str_replace('.', '_', $node->getProperty()) . '_' . $this->parameterCount;
+        $expression = null;
+        switch ($node->getOperator()) {
+            case'eq':
+                $expression = $queryBuilder->expr()->eq($prefix . $node->getProperty(), $parameterName);
+                $queryBuilder->setParameter($parameterName, $node->getValue());
+                break;
+            case'neq':
+                $expression = $queryBuilder->expr()->neq($prefix . $node->getProperty(), $parameterName);
+                $queryBuilder->setParameter($parameterName, $node->getValue());
+                break;
+            case'gt':
+                $expression = $queryBuilder->expr()->gt($prefix . $node->getProperty(), $parameterName);
+                $queryBuilder->setParameter($parameterName, $node->getValue());
+                break;
+            case 'lt':
+                $expression = $queryBuilder->expr()->lt($prefix . $node->getProperty(), $parameterName);
+                $queryBuilder->setParameter($parameterName, $node->getValue());
+                break;
+            case 'gte':
+                $expression = $queryBuilder->expr()->gte($prefix . $node->getProperty(), $parameterName);
+                $queryBuilder->setParameter($parameterName, $node->getValue());
+                break;
+            case'lte':
+                $expression = $queryBuilder->expr()->lte($prefix . $node->getProperty(), $parameterName);
+                $queryBuilder->setParameter($parameterName, $node->getValue());
+                break;
+            case 'like':
+                $expression = $queryBuilder->expr()->like($prefix . $node->getProperty(), $parameterName);
+                $queryBuilder->setParameter($parameterName, '%' . $node->getValue() . '%');
+                break;
         }
 
         return $expression;
     }
 
-    /**
-     * @param ExpressionBuilder $queryBuilder
-     * @param $nodes
-     * @return mixed
-     */
-    private function buildQuery(QueryBuilder $queryBuilder, $expression, $nodes, $currentPos = 1)
+    protected function buildExpression(QueryBuilder $queryBuilder, array $expressions, array $operators)
     {
-        /** @var FilterLogicOperator $logicNode */
-        $logicNode = $nodes[$currentPos] ?? null;
-        $nextNode = $nodes[$currentPos + 1] ?? null;
-
-        //the end?
-        if ($logicNode == null) {
-            //return the current expression
-            return $expression;
-        }
-
-        $expression1 = $this->getFilterNodeExpression($nextNode, $queryBuilder, $expression);
-
-        return $this->getLogicNodeExpression($queryBuilder, $logicNode, $expression, $expression1);
-    }
-
-
-    /**
-     * @param $node
-     * @param ExpressionBuilder $queryBuilder
-     * @param Expression $expression
-     * @return Criteria|\Doctrine\Common\Collections\Expr\Comparison|Expression|ExpressionBuilder
-     */
-    private function getFilterNodeExpression($node, QueryBuilder $queryBuilder, $expression = null)
-    {
-
-
-        $expression1 = null;
-        if ($node instanceof FilterGroup) {
-            $expression1 = $this->walker($queryBuilder, $node->getNodes(), $expression);
-        } elseif ($node instanceof Filter) {
-            $prefix = $this->propertyPrefix;
-            if (strpos($node->getProperty(), '.')) {
-                $prefix = '';
-                $this->joinableEntities[] = explode('.', $node->getProperty())[0];
-            }
-            $parameterName = ':' . str_replace('.', '_', $node->getProperty()) . '_' . $this->parameterCount;
-            switch ($node->getOperator()) {
-                case'eq':
-                    $expression1 = $queryBuilder->expr()->eq($prefix . $node->getProperty(), $parameterName);
-                    $queryBuilder->setParameter($parameterName, $node->getValue());
+        $expression = array_shift($expressions);
+        foreach ($operators as $key => $operator) {
+            switch ($operator) {
+                case "AND":
+                    $expression = $queryBuilder->expr()->andX($expression)->add($expressions[$key]);
                     break;
-                case'neq':
-                    $expression1 = $queryBuilder->expr()->neq($prefix . $node->getProperty(), $parameterName);
-                    $queryBuilder->setParameter($parameterName, $node->getValue());
-                    break;
-                case'gt':
-                    $expression1 = $queryBuilder->expr()->gt($prefix . $node->getProperty(), $parameterName);
-                    $queryBuilder->setParameter($parameterName, $node->getValue());
-                    break;
-                case 'lt':
-                    $expression1 = $queryBuilder->expr()->lt($prefix . $node->getProperty(), $parameterName);
-                    $queryBuilder->setParameter($parameterName, $node->getValue());
-                    break;
-                case 'gte':
-                    $expression1 = $queryBuilder->expr()->gte($prefix . $node->getProperty(), $parameterName);
-                    $queryBuilder->setParameter($parameterName, $node->getValue());
-                    break;
-                case'lte':
-                    $expression1 = $queryBuilder->expr()->lte($prefix . $node->getProperty(), $parameterName);
-                    $queryBuilder->setParameter($parameterName, $node->getValue());
-                    break;
-                case 'like':
-                    $expression1 = $queryBuilder->expr()->like($prefix . $node->getProperty(), $parameterName);
-                    $queryBuilder->setParameter($parameterName, '%' . $node->getValue() . '%');
+                case "OR":
+                    $expression = $queryBuilder->expr()->orX($expression)->add($expressions[$key]);
                     break;
             }
         }
-        $this->parameterCount++;
 
-        return $expression1;
-    }
-
-
-    private function getLogicNodeExpression(QueryBuilder $queryBuilder, FilterLogicOperator $logicNode, $expressionA, $expressionB)
-    {
-        switch ($logicNode->getOperator()) {
-            case "AND":
-                return $queryBuilder->expr()->andX($expressionA, $expressionB);
-            case "OR":
-                return $queryBuilder->expr()->orX($expressionA, $expressionB);
-        }
-
-        throw new \LogicException('Impossible');
+        return $expression;
     }
 }
