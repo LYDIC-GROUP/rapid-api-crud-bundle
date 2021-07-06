@@ -140,7 +140,7 @@ class ExtendedRapidApiCriteria implements RapidApiCriteriaInterface
                 $prefix = '';
                 $this->joinableEntities[] = explode('.', $node->getProperty())[0];
             }
-            $parameterName = ':' . str_replace('.', '_', $node->getProperty()) . '_1';
+            $parameterName = ':' . str_replace('.', '_', $node->getProperty()) . '_' . $this->parameterCount;
             switch ($node->getOperator()) {
                 case'eq':
                     $expression1 = $queryBuilder->expr()->eq($prefix . $node->getProperty(), $parameterName);
