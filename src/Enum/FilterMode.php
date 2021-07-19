@@ -15,6 +15,7 @@ class FilterMode
 {
     const BASIC = 1;
     CONST EXTENDED = 2;
+    CONST DQL = 3;
 
     public static function fromLabel(string $label) {
         switch ($label) {
@@ -22,6 +23,8 @@ class FilterMode
                 return 1;
             case "EXTENDED":
                 return 2;
+            case "DQL":
+                return 3;
             default:
                 throw new NotFoundException(sprintf('Filter mode %s not found', $label));
         }

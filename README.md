@@ -28,13 +28,21 @@ When you extend the RapidApiCrudController, these endpoints will become accessib
 
 ### Filtering
 
-Based on the filterMode you can either filter by property: `/users?name=Steve`<br />
-Or filter with a more complex query: `/users?filter=name:eq:Steve OR age:gt:21`<br />
+There are several implementations for filtering. You can change the filter mode using the `ControllerConfig`.
+
+| Filter                        | Example                                   |
+|-------------------------------|-------------------------------------------|
+| Basic                         | `/users?name=Steve`                       |
+| Extended                      | `/users?filter=name:eq:Steve OR age:gt:21`|
+| DQL (Doctrine Query Language) | `/users?filter=entity.name = 'Steve'`     |
+
+### Sorting
 You can also add sorting to your result: `/users?sort=age ASC`<br />
+
+### Pagination
 You can also add paging queries: `/users?page=1&limit=10`
 
 ### Associated entities
-
 Associated entities are normalized to their ID by default for performance reasons.<br />
 If you want to include the entire entity you can use a query param with (comma separated) association names. For example:<br />
 On the list endpoint: `/users?include=bestFriends`<br />
