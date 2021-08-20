@@ -5,6 +5,8 @@ namespace LydicGroup\RapidApiCrudBundle\Service;
 
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use LydicGroup\RapidApiCrudBundle\Enum\SerializerGroups;
+use LydicGroup\RapidApiCrudBundle\Event\PostListEntitiesEvent;
+use LydicGroup\RapidApiCrudBundle\Event\PreListEntitiesEvent;
 use LydicGroup\RapidApiCrudBundle\Exception\NotFoundException;
 use LydicGroup\RapidApiCrudBundle\Exception\ValidationException;
 use LydicGroup\RapidApiCrudBundle\Factory\CriteriaFactory;
@@ -15,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use function Symfony\Component\String\u;
 
 /**
@@ -32,13 +35,15 @@ class ControllerFacade
     protected SortFactory $sortFactory;
     protected MessageBusInterface $messageBus;
     protected SerializerInterface $serializer;
+    protected EventDispatcherInterface $eventDispatcher;
 
     public function __construct(
         CrudService $crudService,
         CriteriaFactory $criteriaFactory,
         SortFactory $sortFactory,
         MessageBusInterface $messageBus,
-        SerializerInterface $serializer
+        SerializerInterface $serializer,
+        EventDispatcherInterface $eventDispatcher
     )
     {
         $this->crudService = $crudService;
@@ -46,6 +51,7 @@ class ControllerFacade
         $this->sortFactory = $sortFactory;
         $this->messageBus = $messageBus;
         $this->serializer = $serializer;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     private function paramToAssocName(string $assocName): string
@@ -71,6 +77,9 @@ class ControllerFacade
             return new JsonResponse(null, Response::HTTP_NOT_FOUND);
         }
 
+        $event = new PreListEntitiesEvent($context);
+        $this->eventDispatcher->dispatch($event, $event::NAME);
+
         $page = (int)$context->getRequest()->query->get('page', 1);
         $limit = (int)$context->getRequest()->query->get('limit', 10);
 
@@ -79,6 +88,10 @@ class ControllerFacade
             $sorter = $this->sortFactory->create($context);
 
             $paginator = $this->crudService->list($context->getEntityClassName(), $page, $limit, $criteria, $sorter);
+
+            $event = new PostListEntitiesEvent($context, $paginator);
+            $this->eventDispatcher->dispatch($event, $event::NAME);
+
             return $this->json(
                 $paginator->getIterator(),
                 Response::HTTP_OK,
@@ -124,7 +137,6 @@ class ControllerFacade
             $assocName = $this->paramToAssocName($assocName);
             $associationData = $this->crudService->findAssoc($context->getEntityClassName(), $id, $assocName);
 
-            //TODO: This is a duplicate line of code which is used to set the page header.
             $page = (int)$context->getRequest()->query->get('page', 1);
 
             if ($associationData instanceof Paginator) {
